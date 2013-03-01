@@ -29,6 +29,3 @@ taskLine :: GenParser Char st Task
 taskLine =
    do name  <- taskInfoName
       return $ task name Nothing
-
-taskInfoName :: GenParser Char st B.ByteString
-taskInfoName = many (noneOf "|")
