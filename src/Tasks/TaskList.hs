@@ -1,4 +1,4 @@
-module Tasks.TaskList(TaskList,taskListIsEmpty) where
+module Tasks.TaskList(TaskList(..),taskListIsEmpty) where
 import Tasks.Task
 
 
