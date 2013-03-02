@@ -45,7 +45,7 @@ convertCharToWord8 c = fromIntegral (ord c) :: Word8
 putString :: String -> Put
 putString str =
    case length str of
-      0 -> fail "Nigga don't pass me tasks without titles"
+      0 -> fail "Invalid string passed to putString! String must be one character or longer"
       1 -> putWord8 w
       _ -> do putWord8 w; putString (drop 1 str)
    where
@@ -80,7 +80,7 @@ instance Binary Task where
                return $ Task { taskTitle = tt, taskNotes = Just tn, taskPriority = 0 }
             where
                readNWord8s :: (Num a, Eq a) => [Word8] -> a -> Get B.ByteString
-               readNWord8s acc count = do
+               readNWord8s acc count =
                   if count == 0 then 
                      return $ B.pack $ map (\w -> chr (fromIntegral w)) acc
                   else
