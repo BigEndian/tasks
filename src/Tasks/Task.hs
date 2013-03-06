@@ -28,11 +28,6 @@ taskStringIsEmpty (TaskString bws) =
       bwsws = BW.unpack bws
 
 instance Binary TaskString where
-   -- Steps required
-   -- To read the right word8s:
-   --    Read a Word8
-   --    if it is equal to 0, return that 0 and finish
-   --    otherwise, return the word8 prepended to the others
    get = do
             (return . word8sToTaskString . init) =<< readWord8sUntil 0
          where
