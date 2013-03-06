@@ -1,93 +1,78 @@
-module Tasks.Task (Task, task) where
+module Tasks.Task (Task, TaskString) where
 
 import qualified Data.ByteString as BW
-import qualified Data.ByteString.Char8 as B
 import Data.Maybe
-import qualified Text.Read as R
 import Data.Word(Word8(..))
 import Data.Binary
 import Data.Char(chr, ord)
+import Control.Monad
 
-data Task = Task { taskTitle :: B.ByteString, taskNotes :: Maybe B.ByteString, taskPriority :: Int }
+import Tasks.Serialization
 
-task :: String -> Maybe String -> Task
-task t ns = Task { taskTitle = B.pack t, taskNotes = tnsbs, taskPriority = 0 } 
-               where
-                  tnsbs = if isJust ns then (Just . B.pack . fromJust) ns
-                          else Nothing :: Maybe B.ByteString
+newtype TaskString = TaskString BW.ByteString deriving (Read, Show)
 
-instance Show Task where
-   show t = let f = B.unpack $ taskTitle t in 
-               case (taskNotes t) of
-                                    (Just nbs) -> f ++ " Notes: " ++ (B.unpack nbs)
-                                    Nothing -> f
+stringToTaskString :: String -> TaskString
+stringToTaskString = TaskString . stringToWByteString
 
-instance Read Task where
-   readsPrec p s = [(Task { taskTitle = B.pack $ s, taskNotes = Just $ B.pack "", taskPriority = 0 }, s)]
-   readListPrec = R.readListPrecDefault
+taskStringToWByteString :: TaskString -> BW.ByteString
+taskStringToWByteString (TaskString bws) = bws
 
+word8sToTaskString :: [Word8] -> TaskString
+word8sToTaskString = TaskString . BW.pack
 
-instance Eq Task where
-   (==) (Task t1t _ t1p) (Task t2t _ t2p) = and [t1t == t2t, t1p == t2p]
-
-
-instance Ord Task where
-   (<=) (Task _ _ t1p) (Task _ _ t2p) = (<=) t1p t2p
-
-
-
-convertWord8ToChar :: Word8 -> Char
-convertWord8ToChar w = chr . fromIntegral $ w
-
-convertCharToWord8 :: Char -> Word8
-convertCharToWord8 c = fromIntegral (ord c) :: Word8
-
-putString :: String -> Put
-putString str =
-   case length str of
-      0 -> fail "Invalid string passed to putString! String must be one character or longer"
-      1 -> putWord8 w
-      _ -> do putWord8 w; putString (drop 1 str)
+taskStringIsEmpty :: TaskString -> Bool
+taskStringIsEmpty (TaskString bws) =
+   bws == bwse || (bwsws !! 0) == 0
    where
-      c = let (fc:_) = str in fc
-      w = convertCharToWord8 c
+      bwse = BW.pack []
+      bwsws = BW.unpack bws
 
-putTaskTitle :: Task -> Put
-putTaskTitle (Task { taskTitle = tt }) = do
-   putWord8 $ (fromIntegral (B.length tt) :: Word8)
-   putString . B.unpack $ tt
+instance Binary TaskString where
+   -- Steps required
+   -- To read the right word8s:
+   --    Read a Word8
+   --    if it is equal to 0, return that 0 and finish
+   --    otherwise, return the word8 prepended to the others
+   get = do
+            (return . word8sToTaskString . init) =<< readWord8sUntil 0
+         where
+            readWord8sUntil :: Word8 -> Get [Word8]
+            readWord8sUntil val = do
+               w8 <- getWord8
+               if w8 == val then
+                  return $ [w8]
+               else
+                  (return . (w8:)) =<< (readWord8sUntil val)
 
-putTaskNotes (Task { taskNotes = tn }) =
-   if isNothing tn then
-      putWord8 (0 :: Word8)
-   else
-      do
-         putWord8 (fromIntegral (B.length $ fromJust tn) :: Word8)
-         putString (B.unpack $ fromJust tn)
+   put (TaskString bws) = mapM_ putWord8 $ (BW.unpack bws) ++ [0]
 
-instance Binary Task where 
-   put t@(Task { taskTitle = tt }) = do
-      putTaskTitle t
-      putTaskNotes t
+data Task = 
+   Task { taskTitle :: TaskString, taskNotes :: TaskString, taskPriority :: Int }
+      deriving (Read, Show)
 
-   get = do ttlen <- getWord8 :: Get Word8
-            tt <- readNWord8s [] ttlen
-            tnlen <- getWord8 :: Get Word8
-            tn <- readNWord8s [] tnlen
-            if tnlen == 0 then
-               return $ Task { taskTitle = tt, taskNotes = Nothing, taskPriority = 0 }
-            else
-               return $ Task { taskTitle = tt, taskNotes = Just tn, taskPriority = 0 }
-            where
-               readNWord8s :: (Num a, Eq a) => [Word8] -> a -> Get B.ByteString
-               readNWord8s acc count =
-                  if count == 0 then 
-                     return $ B.pack $ map (\w -> chr (fromIntegral w)) acc
-                  else
-                     do
-                        w <- get :: Get Word8
-                        readNWord8s (acc ++ [w]) (count - 1)
 
-exTask = Task { taskTitle = B.pack "Do the dishes", taskNotes = Just $ B.pack "Must be done by 10:00 today", taskPriority = 0 }
+instance Binary Task where
+   get = do
+            tt <- get :: Get TaskString
+            tn <- get :: Get TaskString
+            tp <- get :: Get Int
+            return Task { taskTitle = tt, taskNotes = tn, taskPriority = tp }
+
+   put t = do
+            put $ taskTitle t
+            put $ taskNotes t
+            put $ taskPriority t
+
+
+exTaskTitle = stringToTaskString "Do the dishes"
+exTaskNotes = stringToTaskString "Must be done by 12:00 today"
+exTaskPriority = 0
+encTaskTitle = encode exTaskTitle
+decTaskTitle = decode encTaskTitle :: TaskString
+
+exTask = Task { taskTitle = exTaskTitle,
+                taskNotes = exTaskNotes,
+                taskPriority = exTaskPriority }
+
 encTask = encode exTask
 decTask = decode encTask :: Task
