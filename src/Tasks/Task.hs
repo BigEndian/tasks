@@ -1,4 +1,4 @@
-module Tasks.Task (Task, TaskString) where
+module Tasks.Task where
 
 import qualified Data.ByteString as BW
 import Data.Maybe
@@ -9,7 +9,7 @@ import Control.Monad
 
 import Tasks.Serialization
 
-newtype TaskString = TaskString BW.ByteString deriving (Read, Show)
+newtype TaskString = TaskString BW.ByteString deriving (Read, Show, Eq)
 
 stringToTaskString :: String -> TaskString
 stringToTaskString = TaskString . stringToWByteString
@@ -42,32 +42,48 @@ instance Binary TaskString where
    put (TaskString bws) = mapM_ putWord8 $ (BW.unpack bws) ++ [0]
 
 data Task = 
-   Task { taskTitle :: TaskString, taskNotes :: TaskString, taskPriority :: Int }
+   Task { taskTitle :: TaskString, 
+          taskNotes :: TaskString, 
+          taskPriority :: Int, 
+          taskCompleted :: Bool }
       deriving (Read, Show)
 
+instance Eq Task where
+   (==) (Task { taskTitle = tt1 }) 
+        (Task { taskTitle = tt2 }) = tt1 == tt2
 
 instance Binary Task where
    get = do
             tt <- get :: Get TaskString
             tn <- get :: Get TaskString
             tp <- get :: Get Int
-            return Task { taskTitle = tt, taskNotes = tn, taskPriority = tp }
+            tb <- get :: Get Bool
+            return Task { taskTitle = tt, taskNotes = tn, 
+                          taskPriority = tp, taskCompleted = tb }
 
    put t = do
             put $ taskTitle t
             put $ taskNotes t
             put $ taskPriority t
+            put $ taskCompleted t
 
 
 exTaskTitle = stringToTaskString "Do the dishes"
-exTaskNotes = stringToTaskString "Must be done by 12:00 today"
+exTaskNotes = stringToTaskString "Must be done today"
 exTaskPriority = 0
+exTaskCompleted = True
 encTaskTitle = encode exTaskTitle
 decTaskTitle = decode encTaskTitle :: TaskString
 
 exTask = Task { taskTitle = exTaskTitle,
                 taskNotes = exTaskNotes,
-                taskPriority = exTaskPriority }
+                taskPriority = exTaskPriority,
+                taskCompleted = exTaskCompleted }
+
+exTask2 = Task { taskTitle = stringToTaskString "Finish something",
+                   taskNotes = stringToTaskString "",
+                   taskPriority = 0,
+                   taskCompleted = False }
 
 encTask = encode exTask
 decTask = decode encTask :: Task
