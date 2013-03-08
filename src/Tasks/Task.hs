@@ -7,6 +7,7 @@
 
 module Tasks.Task(
      Task
+   , task
    ) where
 
 import Data.Binary
