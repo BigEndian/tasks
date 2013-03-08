@@ -49,7 +49,7 @@ word8sToTaskString :: [Word8] -> TaskString
 word8sToTaskString = TaskString . BW.pack
 
 instance Binary TaskString where
-   get = do
+   get =
             (return . word8sToTaskString . init) =<< readWord8sUntil 0
          where
             readWord8sUntil :: Word8 -> Get [Word8]
@@ -57,6 +57,6 @@ instance Binary TaskString where
                w8 <- getWord8
                if w8 == val
                   then return [w8]
-                  else (return . (w8:)) =<< (readWord8sUntil val)
+                  else (return . (w8:)) =<< readWord8sUntil val
 
-   put (TaskString bws) = mapM_ putWord8 $ (BW.unpack bws) ++ [0]
+   put (TaskString bws) = mapM_ putWord8 $ BW.unpack bws ++ [0]
