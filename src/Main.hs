@@ -10,8 +10,7 @@ import Tasks.Task
 
 -- | The file path at which the currently saved task resides (if at all).
 taskFilePath :: IO FilePath
-taskFilePath = do
-   getHomeDirectory >>= (return . (</> ".task"))
+taskFilePath = getHomeDirectory >>= (return . (</> ".task"))
 
 -- Choice related functions and values.
 data Choice = ReadFromFile
@@ -33,13 +32,14 @@ choices = [ReadFromFile .. Exit]
 -- | Prompt the user for various information used to create a task.
 promptTask :: IO Task
 promptTask = do
-   putStr "Task Name: "
-   tn <- getLine;
-   putStr "Task notes (if any): "
-   tns <- getLine;
-   putStr "Task priority (from 0 upwards): "
-   tp <- getLine;
-   return $ (task tn (Just tns) (Just $ (read tp :: Int)))
+      [tn,tns,tp] <- mapM promptAndGet
+         [ "Task Name"
+         , "Task Notes (if any)"
+         , "Task Priority (from 0 upwards)" ]
+      return $ (task tn (Just tns) (Just $ (read tp :: Int)))
+   where
+      promptAndGet :: String -> IO String
+      promptAndGet s = (putStr (s ++ ": ") >> getLine)
 
 -- | Prompt the user on what to do, either save a new task or show the old one.
 promptChoices :: IO Choice
@@ -70,14 +70,13 @@ handleChoice c = do
       ReadFromFile -> ((return . Just) =<< (readTaskFromFile fp))
       WriteToFile -> 
          (promptTask >>= (\t -> (writeTaskToFile fp t) >> (return $ Just t)))
-      _ -> return $ Nothing
+      _ -> return Nothing
 
 main :: IO ()
 main = do
-   putStrLn "What would you like to do?"
-   putStrLn ""
+   mapM_ putStrLn ["What would you like to do?", ""]
    c <- promptChoices
-   putStrLn $ "You chose " ++ (show c)
+   putStrLn $ "You chose " ++ (choiceToString c)
    mt <- handleChoice c
    case c of
       ReadFromFile -> (putStrLn $ "Task is " ++ (show $ fromJust mt)) >> main
