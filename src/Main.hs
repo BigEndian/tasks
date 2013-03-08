@@ -10,7 +10,7 @@ import Tasks.Task
 
 -- | The file path at which the currently saved task resides (if at all).
 taskFilePath :: IO FilePath
-taskFilePath = getHomeDirectory >>= (return . (</> ".task"))
+taskFilePath = liftM (</> ".task") getHomeDirectory
 
 -- Choice related functions and values.
 data Choice = ReadFromFile
@@ -36,16 +36,16 @@ promptTask = do
          [ "Task Name"
          , "Task Notes (if any)"
          , "Task Priority (from 0 upwards)" ]
-      return $ (task tn (Just tns) (Just $ (read tp :: Int)))
+      return (task tn (Just tns) (Just (read tp :: Int)))
    where
       promptAndGet :: String -> IO String
-      promptAndGet s = (putStr (s ++ ": ") >> getLine)
+      promptAndGet s = putStr (s ++ ": ") >> getLine
 
 -- | Prompt the user on what to do, either save a new task or show the old one.
 promptChoices :: IO Choice
 promptChoices = do
-      forM_ cps (\(n,c) -> do
-         putStrLn $ (show n) ++ ". " ++ (choiceToString c))
+      forM_ cps (\(n,c) ->
+         putStrLn $ show n ++ ". " ++ choiceToString c)
       scn <- getLine;
       return $ getChoice (read scn :: Int)
    where
@@ -67,18 +67,18 @@ handleChoice :: Choice -> IO (Maybe Task)
 handleChoice c = do
    fp <- taskFilePath;
    case c of
-      ReadFromFile -> ((return . Just) =<< (readTaskFromFile fp))
+      ReadFromFile -> return . Just =<< readTaskFromFile fp
       WriteToFile -> 
-         (promptTask >>= (\t -> (writeTaskToFile fp t) >> (return $ Just t)))
+         promptTask >>= (\t -> writeTaskToFile fp t >> return (Just t))
       _ -> return Nothing
 
 main :: IO ()
 main = do
    mapM_ putStrLn ["What would you like to do?", ""]
    c <- promptChoices
-   putStrLn $ "You chose " ++ (choiceToString c)
+   putStrLn $ "You chose " ++ choiceToString c
    mt <- handleChoice c
    case c of
-      ReadFromFile -> (putStrLn $ "Task is " ++ (show $ fromJust mt)) >> main
-      WriteToFile  -> (putStrLn $ "Wrote the task " ++ (show $ fromJust mt)) >> main
+      ReadFromFile -> putStrLn ("Task is " ++ show (fromJust mt)) >> main
+      WriteToFile  -> putStrLn ("Wrote the task " ++ show (fromJust mt)) >> main
       Exit -> return ()
