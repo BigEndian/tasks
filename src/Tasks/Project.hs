@@ -32,20 +32,15 @@ instance Binary Project where
    get = do
       pn <- get :: Get TaskString
       pns <- get :: Get TaskString
-      ptsl <- get :: Get Int
-      pts <- getTasks ptsl
+      pts <- get :: Get [Task]
       return Project { projectName = pn
                      , projectNotes = pns
                      , projectTasks = pts }
-      where
-         getTasks l = if l /= 0
-                         then forM [1..l] (\_ -> get :: Get Task)
-                         else return []
 
    put p = do
       put (projectName p)
       put (projectNotes p)
-      let pts = projectTasks p in (put (length pts) >> unless (null pts) (put pts))
+      put (projectTasks p)
 
 -- | Check whether a project contains a particular task
 projectHasTask :: Project -> Task -> Bool
