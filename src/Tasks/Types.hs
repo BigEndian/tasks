@@ -55,9 +55,8 @@ instance Binary TaskString where
             readWord8sUntil :: Word8 -> Get [Word8]
             readWord8sUntil val = do
                w8 <- getWord8
-               if w8 == val then
-                  return $ [w8]
-               else
-                  (return . (w8:)) =<< (readWord8sUntil val)
+               if w8 == val
+                  then return [w8]
+                  else (return . (w8:)) =<< (readWord8sUntil val)
 
    put (TaskString bws) = mapM_ putWord8 $ (BW.unpack bws) ++ [0]
