@@ -1,84 +1,38 @@
 module Main where
 
 import Control.Monad
+import Data.Binary(decodeFile)
 import System.FilePath
 import System.Directory(getHomeDirectory)
-import Data.Binary(encodeFile, decodeFile)
-import Data.Maybe
+import System.Console.GetOpt
 
 import Tasks.Task
+import Tasks.Project
 
--- | The file path at which the currently saved task resides (if at all).
+-- | The file path at which the currently saved task database exists (if at all)
 taskFilePath :: IO FilePath
-taskFilePath = liftM (</> ".task") getHomeDirectory
+taskFilePath = liftM (</> ".taskdb") getHomeDirectory
 
--- Choice related functions and values.
-data Choice = ReadFromFile
-            | WriteToFile
-            | Exit deriving (Eq, Show, Read, Enum, Bounded)
+-- | A type describing the possible command line flags
+data Flag = ListProjects
+          | ProjectInfo Int
+          | EditProject Int deriving Show
 
--- | Convert a choice to a string suitable for showing
--- the user
-choiceToString :: Choice -> String
-choiceToString c = case c of
-   ReadFromFile -> "Read from a file"
-   WriteToFile  -> "Write to a file"
-   Exit         -> "Exit the program"
+-- | The options taken by the front-facing executable when invoked
+options :: [OptDescr Flag]
+options = 
+   [ Option "l" ["list-projects"] (NoArg ListProjects) "List all projects" ]
+   --, Option "i" ["project-info"]  (ReqArg getProjectByStrNum "1") "Number of the project to view more information on" ]
+   --, Option ['e'] ["project-edit"]  (ReqArg editProjectByStrNum "1") "Number of the project to edit" ]
 
--- | A list of all possible choices.
-choices :: [Choice]
-choices = [ReadFromFile .. Exit]
+-- | Read the projects stored in the given file
+getProjects :: FilePath -> IO [Project]
+getProjects = decodeFile
 
--- | Prompt the user for various information used to create a task.
-promptTask :: IO Task
-promptTask = do
-      [tn,tns,tp] <- mapM promptAndGet
-         [ "Task Name"
-         , "Task Notes (if any)"
-         , "Task Priority (from 0 upwards)" ]
-      return (task tn (Just tns) (Just (read tp :: Int)))
-   where
-      promptAndGet :: String -> IO String
-      promptAndGet s = putStr (s ++ ": ") >> getLine
+-- | Construct a ProjectInfo flag given a string
+projectInfo :: String -> Flag
+projectInfo = ProjectInfo . read
 
--- | Prompt the user on what to do, either save a new task or show the old one.
-promptChoices :: IO Choice
-promptChoices = do
-      forM_ cps (\(n,c) ->
-         putStrLn $ show n ++ ". " ++ choiceToString c)
-      scn <- getLine;
-      return $ getChoice (read scn :: Int)
-   where
-      getChoice num =
-         let idx = num - 1 in choices !! idx
-      cl = length choices :: Int
-      cns = [1..cl]
-      cps = zip cns choices
-
-readTaskFromFile :: FilePath -> IO Task
-readTaskFromFile = decodeFile
-
-writeTaskToFile :: FilePath -> Task -> IO ()
-writeTaskToFile = encodeFile
-
--- | Handle a choice from the user, returning a corresponding task if
--- they chose to make a new one, or read the old one from the task file path.
-handleChoice :: Choice -> IO (Maybe Task)
-handleChoice c = do
-   fp <- taskFilePath;
-   case c of
-      ReadFromFile -> return . Just =<< readTaskFromFile fp
-      WriteToFile -> 
-         promptTask >>= (\t -> writeTaskToFile fp t >> return (Just t))
-      _ -> return Nothing
-
-main :: IO ()
 main = do
-   mapM_ putStrLn ["What would you like to do?", ""]
-   c <- promptChoices
-   putStrLn $ "You chose " ++ choiceToString c
-   mt <- handleChoice c
-   case c of
-      ReadFromFile -> putStrLn ("Task is " ++ show (fromJust mt)) >> main
-      WriteToFile  -> putStrLn ("Wrote the task " ++ show (fromJust mt)) >> main
-      Exit -> return ()
+   where
+      parsedOptions = getOpt Permute 
