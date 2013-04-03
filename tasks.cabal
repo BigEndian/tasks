@@ -22,5 +22,6 @@ executable tasks
    bytestring >=0.10.0.0, 
    binary >=0.5.0.0, 
    directory >=1.2.0.0, 
-   filepath >=1.3.0.0
+   filepath >=1.3.0.0,
+   cmdargs >=0.10.2
   hs-source-dirs:      src
