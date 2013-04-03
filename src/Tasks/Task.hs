@@ -6,7 +6,7 @@
 -- it's been completed.
 
 module Tasks.Task(
-     Task
+     Task(..)
    , task
    ) where
 
