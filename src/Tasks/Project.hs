@@ -5,7 +5,7 @@
 -- Like task, it implements the Binary instance.
 module Tasks.Project
    (
-     Project -- The @Project@ type
+     Project(..) -- The @Project@ type
    , projectHasTask
    , projectAddTask
    , project
