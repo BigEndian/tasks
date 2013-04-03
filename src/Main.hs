@@ -1,38 +1,77 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Main where
 
 import Control.Monad
-import Data.Binary(decodeFile)
+import Data.Binary(decodeFile, encodeFile)
 import System.FilePath
 import System.Directory(getHomeDirectory)
-import System.Console.GetOpt
+import Data.Maybe(fromMaybe)
+
+import Data.Data
+import Data.Typeable
+import System.Console.CmdArgs
 
 import Tasks.Task
 import Tasks.Project
+import Tasks.Types(tsToString, tsString)
 
 -- | The file path at which the currently saved task database exists (if at all)
 taskFilePath :: IO FilePath
 taskFilePath = liftM (</> ".taskdb") getHomeDirectory
 
--- | A type describing the possible command line flags
-data Flag = ListProjects
-          | ProjectInfo Int
-          | EditProject Int deriving Show
+data Args = Args { list_projects :: Bool 
+                   , edit_project :: Int } deriving (Show, Data, Typeable)
 
--- | The options taken by the front-facing executable when invoked
-options :: [OptDescr Flag]
-options = 
-   [ Option "l" ["list-projects"] (NoArg ListProjects) "List all projects" ]
-   --, Option "i" ["project-info"]  (ReqArg getProjectByStrNum "1") "Number of the project to view more information on" ]
-   --, Option ['e'] ["project-edit"]  (ReqArg editProjectByStrNum "1") "Number of the project to edit" ]
+mutExGroup :: String
+mutExGroup = "Mutually Exclusive Flags"
 
--- | Read the projects stored in the given file
-getProjects :: FilePath -> IO [Project]
-getProjects = decodeFile
+defaultArgs =  
+   Args { list_projects = True &= help "List the current projects" &= 
+            groupname mutExGroup
+        , edit_project = def &= 
+            help "Edit a project with the given number" &= 
+            typ "INT" &= opt (0 :: Int) } &= program "tasks"
 
--- | Construct a ProjectInfo flag given a string
-projectInfo :: String -> Flag
-projectInfo = ProjectInfo . read
+saveProjects :: [Project] -> IO ()
+saveProjects prjs = taskFilePath >>= (`encodeFile` prjs)
+
+getProjects :: IO [Project]
+getProjects = taskFilePath >>= decodeFile
+
+taskRepresentation :: Task -> [String]
+taskRepresentation tsk@(Task { taskName = tnm
+                             , taskNotes = tns
+                             , taskPriority = tp
+                             , taskCompleted = tc }) =
+   [ tsToString tnm
+   , if tsToString tns == "" then "Notes: None" else "Notes" ++ tsToString tns
+   , "Priority: " ++ show tp
+   , "Completed: " ++ (if tc then "Yes" else "No") ]
+
+printProject :: Project -> IO ()
+printProject proj = do
+   putStr . tsToString . projectName $ proj
+   putStr ": "
+   putStr "\n"
+   let ftsks = map taskRepresentation $ projectTasks proj in
+      forM_ ftsks $ 
+         mapM_ (putStr .
+            (replicate (length spn + 1) ' ' ++) .
+            (++"\n"))
+   where
+      spn = tsToString . projectName $ proj
+
+listProjects :: IO ()
+listProjects = do
+   projects <- getProjects
+   forM_ projects $ \proj ->
+      printProject proj
+
+handleArgs :: Args -> IO ()
+handleArgs args
+   | list_projects args = listProjects
+   | otherwise = return ()
 
 main = do
-   where
-      parsedOptions = getOpt Permute 
+   args <- cmdArgsRun $ cmdArgsMode defaultArgs
+   handleArgs args
