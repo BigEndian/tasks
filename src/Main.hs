@@ -19,18 +19,19 @@ import Tasks.Types(tsToString, tsString)
 taskFilePath :: IO FilePath
 taskFilePath = liftM (</> ".taskdb") getHomeDirectory
 
-data Args = Args { list_projects :: Bool 
-                   , edit_project :: Int } deriving (Show, Data, Typeable)
+data Args = Args { listProjects :: Bool 
+                 , editProject :: Int } deriving (Show, Data, Typeable)
 
 mutExGroup :: String
 mutExGroup = "Mutually Exclusive Flags"
 
 defaultArgs =  
-   Args { list_projects = True &= help "List the current projects" &= 
-            groupname mutExGroup
-        , edit_project = def &= 
+   Args { listProjects = True &= help "List the current projects" &= 
+            groupname mutExGroup &= name "list-projects"
+        , editProject = def &= 
             help "Edit a project with the given number" &= 
-            typ "INT" &= opt (0 :: Int) } &= program "tasks"
+            typ "INT" &= opt (0 :: Int) &= name "edit-project" } &= 
+               program "tasks"
 
 saveProjects :: [Project] -> IO ()
 saveProjects prjs = taskFilePath >>= (`encodeFile` prjs)
@@ -61,15 +62,15 @@ printProject proj = do
    where
       spn = tsToString . projectName $ proj
 
-listProjects :: IO ()
-listProjects = do
+printProjects :: IO ()
+printProjects = do
    projects <- getProjects
    forM_ projects $ \proj ->
       printProject proj
 
 handleArgs :: Args -> IO ()
 handleArgs args
-   | list_projects args = listProjects
+   | listProjects args = printProjects
    | otherwise = return ()
 
 main = do
