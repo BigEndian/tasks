@@ -6,6 +6,7 @@
 module Tasks.Project
    (
      Project(..) -- The @Project@ type
+   , projectHasTasks
    , projectHasTask
    , projectAddTask
    , project
@@ -41,6 +42,11 @@ instance Binary Project where
       put (projectName p)
       put (projectNotes p)
       put (projectTasks p)
+
+-- | Convenience method to determine whether a project has any
+-- tasks whatsoever
+projectHasTasks :: Project -> Bool
+projectHasTasks = (/=0) . length . projectTasks
 
 -- | Check whether a project contains a particular task
 projectHasTask :: Project -> Task -> Bool
