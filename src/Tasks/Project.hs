@@ -16,13 +16,14 @@ module Tasks.Project
 import Control.Monad
 import Data.Maybe
 import Data.Binary
+import qualified Data.ByteString as B
 
 import Tasks.Task
-import Tasks.Types(TaskString, tsString)
+import Tasks.Types
 
 -- | The project type, containing the name, notes, and tasks fields
-data Project = Project { projectName :: TaskString
-                       , projectNotes :: TaskString
+data Project = Project { projectName :: B.ByteString
+                       , projectNotes :: B.ByteString
                        , projectTasks :: [Task] } deriving (Show, Read)
 
 instance Eq Project where
@@ -31,8 +32,8 @@ instance Eq Project where
 
 instance Binary Project where
    get = do
-      pn <- get :: Get TaskString
-      pns <- get :: Get TaskString
+      pn <- get :: Get B.ByteString
+      pns <- get :: Get B.ByteString
       pts <- get :: Get [Task]
       return Project { projectName = pn
                      , projectNotes = pns
@@ -68,5 +69,5 @@ project nm ns tsks =
            , projectNotes = nsbws
            , projectTasks = fromMaybe [] tsks }
    where
-      nmbws = tsString nm
-      nsbws = tsString (fromMaybe "" ns)
+      nmbws = bs nm
+      nsbws = bs $ fromMaybe "" ns

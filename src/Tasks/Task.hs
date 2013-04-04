@@ -12,14 +12,15 @@ module Tasks.Task(
 
 import Data.Binary
 import Data.Maybe
+import qualified Data.ByteString as B
 
 import Tasks.Types
 
 -- | The Task data type, storing a task's name, notes, priority, and
 -- completion status.
 data Task =
-   Task { taskName :: TaskString
-        , taskNotes :: TaskString
+   Task { taskName :: B.ByteString
+        , taskNotes :: B.ByteString
         , taskPriority :: Int
         , taskCompleted :: Bool } deriving (Read, Show)
 
@@ -27,8 +28,8 @@ data Task =
 -- and an optional priority value.
 task :: String -> Maybe String -> Maybe Int -> Task
 task tn mtns mtnp =
-   Task { taskName = tsString tn
-        , taskNotes = tsString $ fromMaybe "" mtns
+   Task { taskName = bs tn
+        , taskNotes = bs $ fromMaybe "" mtns
         , taskPriority = fromMaybe 0 mtnp
         , taskCompleted = False }
 
@@ -38,8 +39,8 @@ instance Eq Task where
 
 instance Binary Task where
    get = do
-      tn <- get :: Get TaskString
-      tns <- get :: Get TaskString
+      tn <- get :: Get B.ByteString
+      tns <- get :: Get B.ByteString
       tp <- get :: Get Int
       tb <- get :: Get Bool
       return Task { taskName = tn
