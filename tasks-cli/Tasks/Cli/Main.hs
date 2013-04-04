@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-module Main where
+module Tasks.Cli.Main where
 
 import Control.Monad
 import Data.Binary(decodeFile, encodeFile)
@@ -13,7 +13,7 @@ import System.Console.CmdArgs
 
 import Tasks.Task
 import Tasks.Project
-import Tasks.Types(tsToString, tsString)
+import Tasks.Types(bs, bsToString)
 
 -- | The file path at which the currently saved task database exists (if at all)
 taskFilePath :: IO FilePath
@@ -37,15 +37,15 @@ taskRepresentation tsk@(Task { taskName = tnm
                              , taskNotes = tns
                              , taskPriority = tp
                              , taskCompleted = tc }) =
-   [ tsToString tnm
-   , if tsToString tns == "" then "Notes: None" else "Notes" ++ tsToString tns
+   [ bsToString tnm
+   , if bsToString tns == "" then "Notes: None" else "Notes" ++ bsToString tns
    , "Priority: " ++ show tp
    , "Completed: " ++ (if tc then "Yes" else "No") ]
 
 -- | Print a project to stdout
 printProject :: Project -> IO ()
 printProject proj = do
-   putStr . tsToString . projectName $ proj
+   putStr . bsToString . projectName $ proj
    putStr ": "
    putStr "\n"
    let ftsks = map taskRepresentation $ projectTasks proj in
@@ -54,7 +54,7 @@ printProject proj = do
             (replicate (length spn + 1) ' ' ++) .
             (++"\n"))
    where
-      spn = tsToString . projectName $ proj
+      spn = bsToString . projectName $ proj
 
 -- | Read projects from the task file path and print each one
 printProjects :: IO ()
