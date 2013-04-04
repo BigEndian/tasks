@@ -1,16 +1,14 @@
 -- |
 -- Module: Tasks.Types
 --
--- This module contains types relevant to the Tasks module,
--- but currently only exports TaskString and related functions,
--- useful for custom implementations of Binary.
+-- This module contains convenience functions useful in 
+-- handling and creating bytestrings in other parts of this package
 
 module Tasks.Types
    (
-     TaskString
-   , tsString
-   , tsToString
-   , tsEmpty
+     bs
+   , bsToString
+   , bsEmpty
    ) where
 
 import qualified Data.ByteString as BW
@@ -29,34 +27,14 @@ stringToWByteString = BW.pack . map convertCharToWord8
 wByteStringToString :: BW.ByteString -> String
 wByteStringToString = map convertWord8ToChar . BW.unpack
 
--- | A custom type wrapping around Data.ByteString in order
--- to implement a custom instance of the Binary typeclass
-newtype TaskString = TaskString BW.ByteString deriving (Read, Show, Eq)
+-- | Create a ByteString given a String
+bs :: String -> BW.ByteString
+bs = stringToWByteString
 
--- | Create a TaskString given a String
-tsString :: String -> TaskString
-tsString = TaskString . stringToWByteString
+-- | Convert a ByteString to a String
+bsToString :: BW.ByteString -> String
+bsToString bws = wByteStringToString bws
 
--- | Convert a TaskString to a String
-tsToString :: TaskString -> String
-tsToString (TaskString bws) = wByteStringToString bws
-
--- | Check whether a given TaskString is empty
-tsEmpty :: TaskString -> Bool
-tsEmpty (TaskString bws) = bws == BW.empty
-
-word8sToTaskString :: [Word8] -> TaskString
-word8sToTaskString = TaskString . BW.pack
-
-instance Binary TaskString where
-   get =
-            (return . word8sToTaskString . init) =<< readWord8sUntil 0
-         where
-            readWord8sUntil :: Word8 -> Get [Word8]
-            readWord8sUntil val = do
-               w8 <- getWord8
-               if w8 == val
-                  then return [w8]
-                  else (return . (w8:)) =<< readWord8sUntil val
-
-   put (TaskString bws) = mapM_ putWord8 $ BW.unpack bws ++ [0]
+-- | Check whether a given ByteString is empty
+bsEmpty :: BW.ByteString -> Bool
+bsEmpty = (==0) . length . BW.unpack
