@@ -33,7 +33,7 @@ bs = stringToWByteString
 
 -- | Convert a ByteString to a String
 bsToString :: BW.ByteString -> String
-bsToString bws = wByteStringToString bws
+bsToString = wByteStringToString bws
 
 -- | Check whether a given ByteString is empty
 bsEmpty :: BW.ByteString -> Bool
