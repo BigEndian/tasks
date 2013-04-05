@@ -16,6 +16,7 @@ module Tasks.Project
 import Control.Monad
 import Data.Maybe
 import Data.Binary
+import Data.List(delete)
 import qualified Data.ByteString as B
 
 import Tasks.Task
@@ -61,6 +62,15 @@ projectAddTask p t =
       (p, False)
    else 
       (p { projectTasks = projectTasks p ++ [t] }, True)
+
+-- | Remove a task from a given project, returning a tuple containing the (possibly)
+-- modified project, and a boolean indicating whether the task was removed.
+projectRemoveTask :: Project -> Task -> (Project, Bool)
+projectRemoveTask p t =
+   if projectHasTask p t then
+      (p, False)
+   else
+      (p = { projectTasks = delete t projectTasks }, True)
 
 -- | Easily construct a project, given a name, notes, and tasks
 project :: String -> Maybe String -> Maybe [Task] -> Project
