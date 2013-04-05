@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 module Tasks.Cli.Main where
 
 import Control.Monad
@@ -7,13 +6,12 @@ import System.FilePath
 import System.Directory(getHomeDirectory)
 import Data.Maybe(fromMaybe)
 
-import Data.Data
-import Data.Typeable
 import System.Console.CmdArgs
 
 import Tasks.Task
 import Tasks.Project
 import Tasks.Types(bs, bsToString)
+import Tasks.Cli.Args
 
 -- | The file path at which the currently saved task database exists (if at all)
 taskFilePath :: IO FilePath
@@ -62,23 +60,6 @@ printProjects = do
    projects <- getProjects
    forM_ projects $ \proj ->
       printProject proj
-
--- | The type used to represent arguments passed to this application
-data Args = Args { listProjects :: Bool 
-                 , editProject :: Int } deriving (Show, Data, Typeable)
-
-mutExGroup :: String
-mutExGroup = "Mutually Exclusive Flags"
-
--- | An instance of Args decorated with default values and help information
-defaultArgs =  
-   Args { listProjects = True &= help "List the current projects" &= 
-            groupname mutExGroup &= name "list-projects"
-        , editProject = def &= 
-            help "Edit a project with the given number" &= 
-            typ "INT" &= opt (0 :: Int) &= name "edit-project" } &= 
-               program "tasks"
-
 
 handleArgs :: Args -> IO ()
 handleArgs args
