@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeSynonymInstances #-}
 -- |
 -- Module: Tasks.Types
 --
@@ -14,6 +15,8 @@ module Tasks.Types
 import qualified Data.ByteString as BW
 import Data.Binary
 import Data.Char(chr, ord)
+import Data.DateTime(DateTime, toSeconds, fromSeconds)
+import Control.Monad(liftM)
 
 convertWord8ToChar :: Word8 -> Char
 convertWord8ToChar = chr . fromIntegral
@@ -38,3 +41,7 @@ bsToString = wByteStringToString
 -- | Check whether a given ByteString is empty
 bsEmpty :: BW.ByteString -> Bool
 bsEmpty = (==0) . length . BW.unpack
+
+instance Binary DateTime where
+   put = put . toSeconds
+   get = (get :: Get Integer) >>= (return . fromSeconds)
