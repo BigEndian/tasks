@@ -27,7 +27,7 @@ data Task =
         , taskDue :: Maybe DateTime } deriving (Read, Show)
 
 -- | Construct a task given a name, optional notes,
--- and an optional priority value.
+-- an optional priority value, and an optional datetime at which it is due.
 task :: String -> Maybe String -> Maybe Int -> Maybe DateTime -> Task
 task tn mtns mtnp mtd =
    Task { taskName = bs tn
@@ -58,3 +58,4 @@ instance Binary Task where
       put $ taskNotes t
       put $ taskPriority t
       put $ taskCompleted t
+      put $ taskDue t
