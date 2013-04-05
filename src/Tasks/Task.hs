@@ -12,6 +12,7 @@ module Tasks.Task(
 
 import Data.Binary
 import Data.Maybe
+import Data.DateTime
 import qualified Data.ByteString as B
 
 import Tasks.Types
@@ -22,16 +23,18 @@ data Task =
    Task { taskName :: B.ByteString
         , taskNotes :: B.ByteString
         , taskPriority :: Int
-        , taskCompleted :: Bool } deriving (Read, Show)
+        , taskCompleted :: Bool 
+        , taskDue :: Maybe DateTime } deriving (Read, Show)
 
 -- | Construct a task given a name, optional notes,
 -- and an optional priority value.
-task :: String -> Maybe String -> Maybe Int -> Task
-task tn mtns mtnp =
+task :: String -> Maybe String -> Maybe Int -> Maybe DateTime -> Task
+task tn mtns mtnp mtd =
    Task { taskName = bs tn
         , taskNotes = bs $ fromMaybe "" mtns
         , taskPriority = fromMaybe 0 mtnp
-        , taskCompleted = False }
+        , taskCompleted = False
+        , taskDue = mtd }
 
 instance Eq Task where
    (==) (Task { taskName = tt1 })
@@ -43,10 +46,12 @@ instance Binary Task where
       tns <- get :: Get B.ByteString
       tp <- get :: Get Int
       tb <- get :: Get Bool
+      mtd <- get :: Get (Maybe DateTime)
       return Task { taskName = tn
                   , taskNotes = tns
                   , taskPriority = tp
-                  , taskCompleted = tb }
+                  , taskCompleted = tb
+                  , taskDue = mtd }
 
    put t = do
       put $ taskName t
