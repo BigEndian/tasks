@@ -30,8 +30,8 @@ getProjects = taskFilePath >>= decodeFile
 
 -- | Given a task, create an array of lines, each (essentially) unformatted,
 -- each line containing a corresponding task property and its respective value
-taskRepresentation :: Task -> [String]
-taskRepresentation tsk@(Task { taskName = tnm
+taskRep :: Task -> [String]
+taskRep tsk@(Task { taskName = tnm
                              , taskNotes = tns
                              , taskPriority = tp
                              , taskCompleted = tc }) =
@@ -40,13 +40,22 @@ taskRepresentation tsk@(Task { taskName = tnm
    , "Priority: " ++ show tp
    , "Completed: " ++ (if tc then "Yes" else "No") ]
 
+projectRep :: Project -> [String]
+projectRep proj@(Project { projectName = pn
+                         , projectNotes = pnts
+                         , projectTasks = ptsks }) =
+   [
+      "Project: " ++ (bsToString pn),
+      "Project Notes: " ++ (bsToString pnts)
+   ] ++ (concatMap taskRep ptsks)
+
 -- | Print a project to stdout
 printProject :: Project -> IO ()
 printProject proj = do
    putStr . bsToString . projectName $ proj
    putStr ": "
    putStr "\n"
-   let ftsks = map taskRepresentation $ projectTasks proj in
+   let ftsks = map taskRep $ projectTasks proj in
       forM_ ftsks $ 
          mapM_ (putStr .
             (replicate (length spn + 1) ' ' ++) .
