@@ -33,17 +33,15 @@ instance Eq Project where
 
 instance Binary Project where
    get = do
-      pn <- get :: Get B.ByteString
-      pns <- get :: Get B.ByteString
-      pts <- get :: Get [Task]
+      (pn, pns, pts) <- get :: Get (B.ByteString, B.ByteString, [Task])
       return Project { projectName = pn
                      , projectNotes = pns
                      , projectTasks = pts }
 
    put p = do
-      put (projectName p)
-      put (projectNotes p)
-      put (projectTasks p)
+      put ( projectName p
+          , projectNotes p
+          , projectTasks p)
 
 -- | Convenience method to determine whether a project has any
 -- tasks whatsoever
