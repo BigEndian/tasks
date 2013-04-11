@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeSynonymInstances #-}
+-- Necessary to implement a binary instance for DateTime
 -- |
 -- Module: Tasks.Types
 --
@@ -16,7 +17,6 @@ import qualified Data.ByteString as BW
 import Data.Binary
 import Data.Char(chr, ord)
 import Data.DateTime(DateTime, toSeconds, fromSeconds)
-import Control.Monad(liftM)
 
 convertWord8ToChar :: Word8 -> Char
 convertWord8ToChar = chr . fromIntegral
