@@ -70,7 +70,7 @@ projectRemoveTask p t =
    if projectHasTask p t then
       (p, False)
    else
-      (p = { projectTasks = delete t projectTasks }, True)
+      (p { projectTasks = delete t $ projectTasks p }, True)
 
 -- | Easily construct a project, given a name, notes, and tasks
 project :: String -> Maybe String -> Maybe [Task] -> Project
