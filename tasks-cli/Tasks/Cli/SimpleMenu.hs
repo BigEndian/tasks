@@ -6,17 +6,33 @@ module Tasks.Cli.SimpleMenu
    , SimpleMenu
    ) where
 
-data ChoiceSet = Choice String | ChoiceSet [ChoiceSet] deriving Show
+data ChoiceSet k s = Choice k s | ChoiceSet [ChoiceSet k s] deriving Show
 
-choice :: String -> ChoiceSet
+instance Functor (ChoiceSet k) where
+   fmap f (Choice k s) = Choice k (f s)
+
+choice :: k -> s -> ChoiceSet k s
 choice = Choice
 
 infixl 1 <$>
-(<$>) :: ChoiceSet -> ChoiceSet -> ChoiceSet
-c1@(Choice s1) <$> c2@(Choice s2) = ChoiceSet [c1, c2]
-cset@(ChoiceSet csets)  <$> c@(Choice s) = ChoiceSet (csets ++ [c])
-c@(Choice s) <$> cset@(ChoiceSet csets) = ChoiceSet (c : csets)
-cset1@(ChoiceSet csets1) <$> cset2@(ChoiceSet csets2) = ChoiceSet (csets1 ++ csets2)
 
-data SimpleMenu r = SimpleMenu { smChoiceSet :: ChoiceSet
-                               , smHandler :: IO r }
+(<$>) :: ChoiceSet k s -> ChoiceSet k s -> ChoiceSet k s
+c1@(Choice _ _) <$> c2@(Choice _ _) = ChoiceSet [c1, c2]
+(ChoiceSet choices) <$> c@(Choice _ _) = ChoiceSet (choices ++ [c])
+c@(Choice _ _) <$> (ChoiceSet choices) = ChoiceSet (c : choices)
+(ChoiceSet as1) <$> (ChoiceSet as2) = ChoiceSet (as1 ++ as2)
+
+
+data SimpleMenu r = SimpleMenu { smChoiceSet :: ChoiceSet Char String
+                               , smHandler :: ChoiceSet Char String -> IO r }
+
+exMenu = SimpleMenu { smChoiceSet =
+                        choice 'L' "List projects" <$>
+                        choice 'E' "Edit a project"
+                    , smHandler = \_ -> return () }
+
+presentMenu :: SimpleMenu r -> IO r
+presentMenu menu =
+      smHandler menu (Choice ' ' "")
+   where
+      choiceKey (Choice k _) = k
