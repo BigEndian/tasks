@@ -2,37 +2,56 @@ module Tasks.Cli.SimpleMenu
    (
      ChoiceSet
    , choice
-   , (<$>)
-   , SimpleMenu
+   , (<+>)
+--   , SimpleMenu
    ) where
 
-data ChoiceSet k s = Choice k s | ChoiceSet [ChoiceSet k s] deriving Show
+import Data.List (elemIndex)
+import Data.Maybe (isJust, fromJust)
 
-instance Functor (ChoiceSet k) where
-   fmap f (Choice k s) = Choice k (f s)
+data ChoiceSet = Choice Char String | ChoiceSet [ChoiceSet] deriving Show
 
-choice :: k -> s -> ChoiceSet k s
-choice = Choice
+-- | Construct a choice given a string.
+-- This method should be used instead of calling the Choice constructor
+-- directly, as this will check for an ampersand and prepare the choice for
+-- being displayed in a menu.
+choice :: String -> ChoiceSet
+choice text
+      | isJust midx = let (l,r) = splitAt idx text in
+         Choice (head $ drop 1 r) (l ++ parenthesize r)
+      | otherwise   =
+         error $ "Text must have an ampersand to determine which " ++
+                 "character to use to select this choice"
+   where
+      midx = elemIndex '&' text
+      idx = fromJust midx
+      parenthesize s = '(' : (s!!1) : ')' : drop 2 s
 
-infixl 1 <$>
+choiceKey :: ChoiceSet -> Char
+choiceKey (Choice c _) = c
 
-(<$>) :: ChoiceSet k s -> ChoiceSet k s -> ChoiceSet k s
-c1@(Choice _ _) <$> c2@(Choice _ _) = ChoiceSet [c1, c2]
-(ChoiceSet choices) <$> c@(Choice _ _) = ChoiceSet (choices ++ [c])
-c@(Choice _ _) <$> (ChoiceSet choices) = ChoiceSet (c : choices)
-(ChoiceSet as1) <$> (ChoiceSet as2) = ChoiceSet (as1 ++ as2)
+choiceString :: ChoiceSet -> String
+choiceString (Choice _ s) = s
 
+infixl 1 <+>
 
-data SimpleMenu r = SimpleMenu { smChoiceSet :: ChoiceSet Char String
-                               , smHandler :: ChoiceSet Char String -> IO r }
+(<+>) :: ChoiceSet -> ChoiceSet -> ChoiceSet 
+c1@(Choice _ _) <+> c2@(Choice _ _) = ChoiceSet [c1, c2]
+(ChoiceSet chcs1) <+> (ChoiceSet chcs2) = ChoiceSet (chcs1 ++ chcs2)
+(ChoiceSet chcs) <+> chc@(Choice _ _) = ChoiceSet (chcs ++ [chc])
+chc@(Choice _ _) <+> (ChoiceSet chcs) = ChoiceSet (chc:chcs)
+
+data SimpleMenu r = SimpleMenu { smChoiceSet :: ChoiceSet
+                               , smHandler :: ChoiceSet -> IO r }
 
 exMenu = SimpleMenu { smChoiceSet =
-                        choice 'L' "List projects" <$>
-                        choice 'E' "Edit a project"
+                        choice "&List projects" <+>
+                        choice "&Edit a project"
                     , smHandler = \_ -> return () }
 
-presentMenu :: SimpleMenu r -> IO r
-presentMenu menu =
-      smHandler menu (Choice ' ' "")
+displayMenu :: SimpleMenu r -> IO ()
+displayMenu menu = mapM_ (putStrLn . choiceString) choices
    where
-      choiceKey (Choice k _) = k
+      choices = case (smChoiceSet menu) of
+         c@(Choice _ _) -> [c]
+         (ChoiceSet chcs)  -> chcs
