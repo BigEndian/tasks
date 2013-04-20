@@ -9,7 +9,7 @@ import Data.Maybe(fromMaybe)
 import Tasks.Task
 import Tasks.Project
 import Tasks.Types(bs, bsToString)
-import Tasks.Cli.SimpleMenu
+import Tasks.Cli.Menu
 
 -- | The file path at which the currently saved task database exists (if at all)
 taskFilePath :: IO FilePath
