@@ -4,7 +4,7 @@ module Tasks.Cli.Menu
    , choice
    , choiceKey
    , choiceString
-   , Menu
+   , Menu(..)
    , displayMenu
    ) where
 
