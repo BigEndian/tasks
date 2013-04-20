@@ -66,3 +66,12 @@ printProjects = do
    projects <- getProjects
    forM_ projects $ \proj ->
       printProject proj
+
+
+-- Menus
+
+mainMenu :: Menu ()
+mainMenu = Menu { menuChoices =
+                     [ choice "&List projects"
+                     , choice "&Edit projects" ]
+                , menuHandler = \_ -> return () }
