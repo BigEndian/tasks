@@ -1,8 +1,11 @@
-module Tasks.Cli.SimpleMenu
+module Tasks.Cli.Menu
    (
      Choice
    , choice
---   , SimpleMenu
+   , choiceKey
+   , choiceString
+   , Menu
+   , displayMenu
    ) where
 
 import Data.List (elemIndex)
@@ -32,13 +35,13 @@ choiceKey (Choice c _) = c
 choiceString :: Choice -> String
 choiceString (Choice _ s) = s
 
-data SimpleMenu r = SimpleMenu { smChoiceSet :: [Choice]
+data Menu r = Menu { smChoiceSet :: [Choice]
                                , smHandler :: Choice -> IO r }
 
-exMenu = SimpleMenu { smChoiceSet =
+exMenu = Menu { smChoiceSet =
                         [ choice "&List projects"
                         , choice "&Edit a project" ]
                     , smHandler = \_ -> return () }
 
-displayMenu :: SimpleMenu r -> IO ()
+displayMenu :: Menu r -> IO ()
 displayMenu menu = mapM_ (putStrLn . choiceString) (smChoiceSet menu)
