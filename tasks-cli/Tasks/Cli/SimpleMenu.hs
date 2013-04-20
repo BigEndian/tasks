@@ -17,7 +17,7 @@ data Choice = Choice Char String
 choice :: String -> Choice
 choice text
       | isJust midx = let (l,r) = splitAt idx text in
-         Choice (head $ drop 1 r) (l ++ parenthesize r)
+         Choice (r !! 1) (l ++ parenthesize r)
       | otherwise   =
          error $ "Text must have an ampersand to determine which " ++
                  "character to use to select this choice"
@@ -36,8 +36,8 @@ data SimpleMenu r = SimpleMenu { smChoiceSet :: [Choice]
                                , smHandler :: Choice -> IO r }
 
 exMenu = SimpleMenu { smChoiceSet =
-                        choice "&List projects" :
-                        choice "&Edit a project" : []
+                        [ choice "&List projects"
+                        , choice "&Edit a project" ]
                     , smHandler = \_ -> return () }
 
 displayMenu :: SimpleMenu r -> IO ()
