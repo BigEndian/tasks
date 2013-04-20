@@ -6,12 +6,10 @@ import System.FilePath
 import System.Directory(getHomeDirectory)
 import Data.Maybe(fromMaybe)
 
-import System.Console.CmdArgs
-
 import Tasks.Task
 import Tasks.Project
 import Tasks.Types(bs, bsToString)
-import Tasks.Cli.Args
+import Tasks.Cli.SimpleMenu
 
 -- | The file path at which the currently saved task database exists (if at all)
 taskFilePath :: IO FilePath
@@ -36,7 +34,7 @@ taskRep tsk@(Task { taskName = tnm
                              , taskPriority = tp
                              , taskCompleted = tc }) =
    [ bsToString tnm
-   , if bsToString tns == "" then "Notes: None" else "Notes" ++ bsToString tns
+   , if bsToString tns == "" then "Notes: None" else "Notes: " ++ bsToString tns
    , "Priority: " ++ show tp
    , "Completed: " ++ (if tc then "Yes" else "No") ]
 
@@ -53,8 +51,7 @@ projectRep proj@(Project { projectName = pn
 printProject :: Project -> IO ()
 printProject proj = do
    putStr . bsToString . projectName $ proj
-   putStr ": "
-   putStr "\n"
+   putStr ": \n"
    let ftsks = map taskRep $ projectTasks proj in
       forM_ ftsks $ 
          mapM_ (putStr .
@@ -69,12 +66,3 @@ printProjects = do
    projects <- getProjects
    forM_ projects $ \proj ->
       printProject proj
-
-handleArgs :: Args -> IO ()
-handleArgs args
-   | listProjects args = printProjects
-   | otherwise = return ()
-
-main = do
-   args <- cmdArgsRun $ cmdArgsMode defaultArgs
-   handleArgs args
