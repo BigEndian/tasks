@@ -7,11 +7,13 @@ module Tasks.Cli.Menu
    , Menu(..)
    , menuDisplay
    , menuChoose
+   , menuRun
    ) where
 
 import Control.Monad (liftM)
 import Data.List (elemIndex)
 import Data.Maybe (isJust, fromJust)
+import System.IO (hGetEcho, hSetEcho, stdin)
 
 -- | A datatype used to represent a choice in a menu.
 -- The character represents which key should be used to select
@@ -54,7 +56,10 @@ menuDisplay menu = mapM_ (putStrLn . choiceString) (menuChoices menu)
 
 menuChoose :: Menu r -> IO Choice
 menuChoose menu = do
+   old_echo <- hGetEcho stdin
+   hSetEcho stdin False
    mchidx <- liftM (`elemIndex` characters) getChar -- IO (Maybe Int)
+   hSetEcho stdin old_echo
    if isJust mchidx then
       return $ choices !! fromJust mchidx
    else
@@ -62,3 +67,6 @@ menuChoose menu = do
    where
       choices = menuChoices menu
       characters = map choiceKey choices
+
+menuRun :: Menu r -> IO r
+menuRun menu = menuDisplay menu >> menuChoose menu >>= menuHandler menu
