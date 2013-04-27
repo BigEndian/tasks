@@ -70,8 +70,12 @@ printProjects = do
 
 -- Menus
 
+mmHandler :: Choice -> IO ()
+mmHandler (Choice ck cs) =
+   putStrLn $ cs !! 1 : drop 3 cs
+
 mainMenu :: Menu ()
 mainMenu = Menu { menuChoices =
                      [ choice "&List projects"
                      , choice "&Edit projects" ]
-                , menuHandler = \_ -> return () }
+                , menuHandler = mmHandler }
