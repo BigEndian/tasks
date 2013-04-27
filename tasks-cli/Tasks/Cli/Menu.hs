@@ -85,5 +85,7 @@ menuChoose m@(Menu { menuChoices = choices }) = do
    else
       putStrLn "Invalid choice." >> menuChoose m
 
+-- | Display a menu, get a choice, then pass the resultant choice
+-- to the menu's handler
 menuRun :: Menu r -> IO r
 menuRun menu = menuDisplay menu >> menuChoose menu >>= menuHandler menu
