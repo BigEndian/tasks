@@ -25,7 +25,7 @@ import Tasks.Types
 -- | The project type, containing the name, notes, and tasks fields
 data Project = Project { projectName :: B.ByteString
                        , projectNotes :: B.ByteString
-                       , projectTasks :: [Task] } deriving (Show, Read)
+                       , projectTasks :: [Task] }
 
 instance Eq Project where
    (==) (Project { projectName = pn1 })
@@ -42,6 +42,11 @@ instance Binary Project where
       put ( projectName p
           , projectNotes p
           , projectTasks p)
+
+
+instance Show Project where
+   showsPrec _ p = \_ -> bsToString $ projectName p
+   
 
 -- | Convenience method to determine whether a project has any
 -- tasks whatsoever
