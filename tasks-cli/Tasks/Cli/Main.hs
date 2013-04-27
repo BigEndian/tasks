@@ -70,9 +70,19 @@ printProjects = do
 
 -- Menus
 
+listObjectsMenu :: (Show s) => [s] -> Menu s
+listObjectsMenu xs
+   | length xs > 10 = error "10 objects or fewer per generic-list menu"
+   | otherwise       = Menu { menuChoices = choices
+                            , menuHandler = handler }
+   where
+      choices = map (\(n,s) -> choice $ '&' : (show n) ++ ". " ++ s) (zip [0..9] (map show xs))
+      handler (Choice (c:_) _) = return $ xs !! ((read [c] :: Int) - 1)
+
 mmHandler :: Choice -> IO ()
-mmHandler (Choice ck cs) =
-   putStrLn $ cs !! 1 : drop 3 cs
+mmHandler (Choice chs cs) = case (head chs) of
+   'L' -> putStrLn "You chose to list projects"
+   'E' -> putStrLn "You chose to edit projects"
 
 mainMenu :: Menu ()
 mainMenu = Menu { menuChoices =
