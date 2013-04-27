@@ -65,10 +65,14 @@ getCorrespondingChoice choices ik = do
    where
       choiceMatches chr chc = any (==chr) (choiceKeys chc)
       matches = filter (choiceMatches ik) choices
+
 -- | Display a menu's entries through the terminal
 menuDisplay :: Menu r -> IO ()
 menuDisplay menu = mapM_ (putStrLn . choiceString) (menuChoices menu)
 
+-- | Get a choice from a user for a menu
+-- It will continue to prompt until it gets a valid choice
+-- Error is called if choices is empty
 menuChoose :: Menu r -> IO Choice
 menuChoose m@(Menu { menuChoices = choices }) = do
    old_echo <- hGetEcho stdin
