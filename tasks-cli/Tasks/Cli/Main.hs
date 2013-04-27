@@ -77,7 +77,7 @@ listObjectsMenu xs
                             , menuHandler = handler }
    where
       choices = map (\(n,s) -> choice $ '&' : (show n) ++ ". " ++ s) (zip [0..9] (map show xs))
-      handler (Choice (c:_) _) = return $ xs !! ((read [c] :: Int) - 1)
+      handler (Choice (c:_) _) = return $ xs !! (read [c] :: Int)
 
 mmHandler :: Choice -> IO ()
 mmHandler (Choice chs cs) = case (head chs) of
