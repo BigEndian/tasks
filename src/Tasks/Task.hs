@@ -40,22 +40,22 @@ instance Eq Task where
 instance Binary Task where
    get = do
       tn <- get :: Get B.ByteString
-      tns <- get :: Get (Maybe B.ByteString)
+      mtns <- get :: Get (Maybe B.ByteString)
       tp <- get :: Get TaskPriority
       tb <- get :: Get Bool
       mtd <- get :: Get (Maybe DateTime)
       return Task { taskName = tn
-                  , taskNotes = tns
+                  , taskNotes = mtns
                   , taskPriority = tp
                   , taskCompleted = tb
                   , taskDue = mtd }
 
    put t = do
-      put $ taskName t
-      put $ taskNotes t
-      put $ taskPriority t
-      put $ taskCompleted t
-      put $ taskDue t
+      put ( taskName t
+          , taskNotes t
+          , taskPriority t
+          , taskCompleted t
+          , taskDue t )
 
 -- | Construct a task given a name, optional notes,
 -- an optional priority value, and an optional datetime at which it is due.
