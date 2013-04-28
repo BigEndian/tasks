@@ -28,20 +28,10 @@ instance Binary TaskPriority where
 -- completion status.
 data Task =
    Task { taskName :: B.ByteString
-        , taskNotes :: B.ByteString
+        , taskNotes :: Maybe B.ByteString
         , taskPriority :: TaskPriority
         , taskCompleted :: Bool 
         , taskDue :: Maybe DateTime } deriving (Read, Show)
-
--- | Construct a task given a name, optional notes,
--- an optional priority value, and an optional datetime at which it is due.
-task :: String -> Maybe String -> Maybe TaskPriority -> Maybe DateTime -> Task
-task tn mtns mtnp mtd =
-   Task { taskName = bs tn
-        , taskNotes = bs $ fromMaybe "" mtns
-        , taskPriority = fromMaybe Low mtnp
-        , taskCompleted = False
-        , taskDue = mtd }
 
 instance Eq Task where
    (==) (Task { taskName = tt1 })
@@ -50,7 +40,7 @@ instance Eq Task where
 instance Binary Task where
    get = do
       tn <- get :: Get B.ByteString
-      tns <- get :: Get B.ByteString
+      tns <- get :: Get (Maybe B.ByteString)
       tp <- get :: Get TaskPriority
       tb <- get :: Get Bool
       mtd <- get :: Get (Maybe DateTime)
@@ -66,3 +56,13 @@ instance Binary Task where
       put $ taskPriority t
       put $ taskCompleted t
       put $ taskDue t
+
+-- | Construct a task given a name, optional notes,
+-- an optional priority value, and an optional datetime at which it is due.
+task :: String -> Maybe String -> Maybe TaskPriority -> Maybe DateTime -> Task
+task tn mtns mtnp mtd =
+   Task { taskName = bs tn
+        , taskNotes = fmap bs mtns
+        , taskPriority = fromMaybe Low mtnp
+        , taskCompleted = False
+        , taskDue = mtd }
