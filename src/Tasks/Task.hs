@@ -47,7 +47,7 @@ instance Eq Task where
         (Task { taskName = tt2 }) = tt1 == tt2
 
 instance Ord Task where
-   t1 >= t2 = (taskPriority t1) >= (taskPriority t2)
+   t1 <= t2 = (taskPriority t1) <= (taskPriority t2)
 
 instance Binary Task where
    get = do
