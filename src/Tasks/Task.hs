@@ -2,8 +2,7 @@
 -- Module: Tasks.Task
 --
 -- This module contains the Task data type, used to represent a user's
--- task and what it relates to, how important it is, and whether or not
--- it's been completed.
+-- task 
 
 module Tasks.Task
    (
@@ -14,6 +13,9 @@ module Tasks.Task
    , taskPriority
    , taskCompleted
    , taskDue
+
+   -- Export for testing purposes
+   , exTask1, exTask2, exTasks
    ) where
 
 import Data.Binary
@@ -24,8 +26,8 @@ import qualified Data.ByteString as B
 import Tasks.Types
 
 
--- | The Task data type, storing a task's name, notes, priority, and
--- completion status.
+-- | The Task data type, storing a task's name, notes, priority,
+-- completion status, and due date.
 data Task =
    Task { taskName :: B.ByteString
         , taskMetadata :: Metadata } deriving (Show, Read)
