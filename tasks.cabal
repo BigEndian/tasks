@@ -23,14 +23,14 @@ library
   build-depends:       
    base ==4.6.*,
    bytestring >=0.10.0.0,
-   binary >=0.5.0.0
+   binary >=0.5.0.0,
+   datetime >=0.2.0
 
 executable tasks
   hs-source-dirs:      tasks-cli
   main-is: Main.hs
   other-modules:
    Tasks.Cli.Main
-   Tasks.Cli.Args
   build-depends:
    base ==4.6.*,
    cmdargs >=0.10.0,
