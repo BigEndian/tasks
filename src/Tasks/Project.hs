@@ -10,6 +10,12 @@ module Tasks.Project
    , projectHasTask
    , projectAddTask
    , project
+   
+   -- Helper functions
+   , projectNotes
+   , projectPriority
+   , projectCompleted
+   , projectDue
    ) where
 
 
