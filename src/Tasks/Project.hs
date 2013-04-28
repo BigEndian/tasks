@@ -93,7 +93,3 @@ project pnm mpnts mp md tsks =
    Project { projectName = bs pnm
            , projectTasks = tsks
            , projectMetadata = metadata mpnts mp (Just False) md }
-   where
-      fmpnts = case mpnts of
-         (Just str) -> Just . bs $ str
-         Nothing    -> Nothing
