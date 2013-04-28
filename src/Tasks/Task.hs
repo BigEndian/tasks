@@ -24,14 +24,45 @@ instance Binary TaskPriority where
    get = liftM toEnum get
    put = put . fromEnum
 
+-- | A type which encapsulates all metadata for a task
+data TaskMetadata =
+   TaskMetadata { tmdNotes :: Maybe B.ByteString
+                , tmdPriority :: TaskPriority
+                , tmdCompleted :: Bool
+                , tmdDue :: Maybe DateTime }
+
+instance Binary TaskMetadata where
+   get = do
+      mtmdn <- get :: Get (Maybe B.ByteString)
+      tmdp  <- get :: Get TaskPriority
+      tmdc  <- get :: Get Bool
+      mtmdd <- get :: Get (Maybe DateTime)
+      return TaskMetadata { tmdNotes = mtmdn
+                          , tmdPriority = tmdp
+                          , tmdCompleted = tmdc
+                          , tmdDue = mtmdd }
+
+   put tmd =
+      put ( tmdNotes tmd
+          , tmdPriority tmd
+          , tmdCompleted tmd
+          , tmdDue tmd )
+
 -- | The Task data type, storing a task's name, notes, priority, and
 -- completion status.
 data Task =
    Task { taskName :: B.ByteString
-        , taskNotes :: Maybe B.ByteString
-        , taskPriority :: TaskPriority
-        , taskCompleted :: Bool 
-        , taskDue :: Maybe DateTime } deriving (Read, Show)
+        , taskMetadata :: TaskMetadata }
+
+
+taskNotes = tmdNotes . taskMetadata
+
+taskPriority = tmdPriority . taskMetadata
+
+taskCompleted = tmdCompleted . taskMetadata
+
+taskDue = tmdDue . taskMetadata
+
 
 instance Eq Task where
    (==) (Task { taskName = tt1 })
@@ -40,29 +71,31 @@ instance Eq Task where
 instance Binary Task where
    get = do
       tn <- get :: Get B.ByteString
-      mtns <- get :: Get (Maybe B.ByteString)
-      tp <- get :: Get TaskPriority
-      tb <- get :: Get Bool
-      mtd <- get :: Get (Maybe DateTime)
+      tmd <- get :: Get TaskMetadata
       return Task { taskName = tn
-                  , taskNotes = mtns
-                  , taskPriority = tp
-                  , taskCompleted = tb
-                  , taskDue = mtd }
+                  , taskMetadata = tmd }
 
    put t = do
       put ( taskName t
-          , taskNotes t
-          , taskPriority t
-          , taskCompleted t
-          , taskDue t )
+          , taskMetadata t )
 
 -- | Construct a task given a name, optional notes,
 -- an optional priority value, and an optional datetime at which it is due.
 task :: String -> Maybe String -> Maybe TaskPriority -> Maybe DateTime -> Task
 task tn mtns mtnp mtd =
    Task { taskName = bs tn
-        , taskNotes = fmap bs mtns
-        , taskPriority = fromMaybe Low mtnp
-        , taskCompleted = False
-        , taskDue = mtd }
+        , taskMetadata = tmd }
+   where
+      tmd = TaskMetadata { tmdNotes = fmap bs mtns
+                         , tmdPriority = fromMaybe Low mtnp
+                         , tmdCompleted = False
+                         , tmdDue = mtd }
+
+{-
+ - This section just contains some examples, useful for playing around with
+ - tasks (aka testing them). I cba to use a testing framework atm
+ -}
+
+exTask1 = task "Example Task 1" (Just "An example task") (Just Medium) Nothing
+exTask2 = task "Example Task 2" (Just "An example task") (Just High) Nothing
+exTasks = [exTask1, exTask2]
