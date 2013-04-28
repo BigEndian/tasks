@@ -14,6 +14,7 @@ module Tasks.Project
 
 
 import Control.Monad
+import Data.DateTime
 import Data.Maybe
 import Data.Binary
 import Data.List(elem, delete, null)
@@ -24,8 +25,17 @@ import Tasks.Types
 
 -- | The project type, containing the name, notes, and tasks fields
 data Project = Project { projectName :: B.ByteString
-                       , projectNotes :: Maybe B.ByteString
-                       , projectTasks :: Maybe [Task] }
+                       , projectTasks :: [Task]
+                       , projectMetadata :: Metadata }
+
+-- Helper functions
+projectNotes = mdNotes . projectMetadata
+
+projectPriority = mdPriority . projectMetadata
+
+projectCompleted = mdCompleted . projectMetadata
+
+projectDue = mdDue . projectMetadata
 
 instance Eq Project where
    (==) (Project { projectName = pn1 })
@@ -33,33 +43,28 @@ instance Eq Project where
 
 instance Binary Project where
    get = do
-      (pn, pns, pts) <- get :: Get (B.ByteString, Maybe B.ByteString, Maybe [Task])
+      (pn, ptsks, pmd) <- get :: Get (B.ByteString, [Task], Metadata)
       return Project { projectName = pn
-                     , projectNotes = pns
-                     , projectTasks = pts }
+                     , projectTasks = ptsks
+                     , projectMetadata = pmd }
 
    put p =
       put ( projectName p
-          , projectNotes p
-          , projectTasks p)
+          , projectTasks p
+          , projectMetadata p )
 
 
 instance Show Project where
    showsPrec _ p = ((bsToString $ projectName p)++)
 
-
 -- | Convenience method to determine whether a project has any
 -- tasks whatsoever
 projectHasTasks :: Project -> Bool
-projectHasTasks (Project { projectTasks = pts }) = case pts of
-   Nothing      -> False
-   (Just tasks) -> not (null tasks)
+projectHasTasks (Project { projectTasks = pts }) = not (null pts)
 
 -- | Check whether a project contains a particular task
 projectHasTask :: Project -> Task -> Bool
-projectHasTask (Project { projectTasks = pts }) t
-   | isJust pts = t `elem` fromJust pts
-   | otherwise  = False
+projectHasTask (Project { projectTasks = pts }) t = t `elem` pts
 
 -- | Add a task to a given project, returning a tuple containing the (possibly)
 -- modified project, and a boolean indicating whether the task was added.
@@ -67,8 +72,8 @@ projectAddTask :: Project -> Task -> (Project, Bool)
 projectAddTask p@(Project { projectTasks = pts }) t =
    if projectHasTask p t then
       (p, False)
-   else 
-      let newTasks = Just $ fromMaybe [] pts ++ [t] in
+   else
+      let newTasks = pts ++ [t] in
          (p { projectTasks = newTasks }, True)
 
 -- | Remove a task from a given project, returning a tuple containing the (possibly)
@@ -78,15 +83,16 @@ projectRemoveTask p@(Project { projectTasks = pts }) t =
    if not $ projectHasTask p t then
       (p, False)
    else
-      let newTasks = Just $ delete t (fromJust pts) in
+      let newTasks = delete t pts in
          (p { projectTasks = newTasks }, True)
 
--- | Easily construct a project, given a name, notes, and tasks
-project :: String -> Maybe String -> Maybe [Task] -> Project
-project pnm mpnts mpts =
+-- | Easily construct a project, given a name, notes, priority,
+-- due date, and tasks.
+project :: String -> Maybe String -> Maybe Priority -> Maybe DateTime -> [Task] -> Project
+project pnm mpnts mp md tsks =
    Project { projectName = bs pnm
-           , projectNotes = fmpnts
-           , projectTasks = mpts }
+           , projectTasks = tsks
+           , projectMetadata = metadata mpnts mp (Just False) md }
    where
       fmpnts = case mpnts of
          (Just str) -> Just . bs $ str
