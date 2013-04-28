@@ -10,6 +10,7 @@ module Tasks.Task(
    , task
    ) where
 
+import Control.Monad(liftM)
 import Data.Binary
 import Data.Maybe
 import Data.DateTime
@@ -17,22 +18,28 @@ import qualified Data.ByteString as B
 
 import Tasks.Types
 
+data TaskPriority = Low | Medium | High deriving (Show, Read, Eq, Ord, Bounded, Enum)
+
+instance Binary TaskPriority where
+   get = liftM toEnum get
+   put = put . fromEnum
+
 -- | The Task data type, storing a task's name, notes, priority, and
 -- completion status.
 data Task =
    Task { taskName :: B.ByteString
         , taskNotes :: B.ByteString
-        , taskPriority :: Int
+        , taskPriority :: TaskPriority
         , taskCompleted :: Bool 
         , taskDue :: Maybe DateTime } deriving (Read, Show)
 
 -- | Construct a task given a name, optional notes,
 -- an optional priority value, and an optional datetime at which it is due.
-task :: String -> Maybe String -> Maybe Int -> Maybe DateTime -> Task
+task :: String -> Maybe String -> Maybe TaskPriority -> Maybe DateTime -> Task
 task tn mtns mtnp mtd =
    Task { taskName = bs tn
         , taskNotes = bs $ fromMaybe "" mtns
-        , taskPriority = fromMaybe 0 mtnp
+        , taskPriority = fromMaybe Low mtnp
         , taskCompleted = False
         , taskDue = mtd }
 
@@ -44,7 +51,7 @@ instance Binary Task where
    get = do
       tn <- get :: Get B.ByteString
       tns <- get :: Get B.ByteString
-      tp <- get :: Get Int
+      tp <- get :: Get TaskPriority
       tb <- get :: Get Bool
       mtd <- get :: Get (Maybe DateTime)
       return Task { taskName = tn
