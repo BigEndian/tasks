@@ -63,9 +63,6 @@ data Metadata = Metadata { mdNotes :: Maybe BW.ByteString
                          , mdCompleted :: Bool
                          , mdDue :: Maybe DateTime } deriving Eq
 
-instance Ord Metadata where
-   md1 >= md2 = (mdPriority md1) >= (mdPriority md2)
-
 instance Binary Metadata where
    get = do
       mmdnts <- get :: Get (Maybe BW.ByteString)
