@@ -4,8 +4,8 @@
 -- Module: Tasks.Types
 --
 -- This module contains convenience functions useful in 
--- handling and creating bytestrings in other parts of this package, as well
--- as the Metadata and Priority types
+-- handling and creating bytestrings in other parts of 
+-- this package, as well as the Metadata and Priority types
 
 module Tasks.Types
    (
@@ -61,7 +61,10 @@ instance Binary Priority where
 data Metadata = Metadata { mdNotes :: Maybe BW.ByteString
                          , mdPriority :: Priority
                          , mdCompleted :: Bool
-                         , mdDue :: Maybe DateTime }
+                         , mdDue :: Maybe DateTime } deriving Eq
+
+instance Ord Metadata where
+   md1 >= md2 = (mdPriority md1) >= (mdPriority md2)
 
 instance Binary Metadata where
    get = do
