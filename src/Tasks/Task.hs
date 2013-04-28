@@ -2,7 +2,7 @@
 -- Module: Tasks.Task
 --
 -- This module contains the Task data type, used to represent a user's
--- task 
+-- task
 
 module Tasks.Task
    (
