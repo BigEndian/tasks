@@ -5,73 +5,52 @@
 -- task and what it relates to, how important it is, and whether or not
 -- it's been completed.
 
-module Tasks.Task(
+module Tasks.Task
+   (
      Task(..)
-   , task
+
+   -- Task accessor functions
+   , taskNotes
+   , taskPriority
+   , taskCompleted
+   , taskDue
    ) where
 
-import Control.Monad(liftM)
 import Data.Binary
-import Data.Maybe
 import Data.DateTime
+import Data.Maybe
 import qualified Data.ByteString as B
 
 import Tasks.Types
 
-data TaskPriority = Low | Medium | High deriving (Show, Read, Eq, Ord, Bounded, Enum)
-
-instance Binary TaskPriority where
-   get = liftM toEnum get
-   put = put . fromEnum
-
--- | A type which encapsulates all metadata for a task
-data TaskMetadata =
-   TaskMetadata { tmdNotes :: Maybe B.ByteString
-                , tmdPriority :: TaskPriority
-                , tmdCompleted :: Bool
-                , tmdDue :: Maybe DateTime }
-
-instance Binary TaskMetadata where
-   get = do
-      mtmdn <- get :: Get (Maybe B.ByteString)
-      tmdp  <- get :: Get TaskPriority
-      tmdc  <- get :: Get Bool
-      mtmdd <- get :: Get (Maybe DateTime)
-      return TaskMetadata { tmdNotes = mtmdn
-                          , tmdPriority = tmdp
-                          , tmdCompleted = tmdc
-                          , tmdDue = mtmdd }
-
-   put tmd =
-      put ( tmdNotes tmd
-          , tmdPriority tmd
-          , tmdCompleted tmd
-          , tmdDue tmd )
 
 -- | The Task data type, storing a task's name, notes, priority, and
 -- completion status.
 data Task =
    Task { taskName :: B.ByteString
-        , taskMetadata :: TaskMetadata }
+        , taskMetadata :: Metadata } deriving (Show, Read)
 
 
-taskNotes = tmdNotes . taskMetadata
+-- Functions to quickly access task metadata
+taskNotes = mdNotes . taskMetadata
 
-taskPriority = tmdPriority . taskMetadata
+taskPriority = mdPriority . taskMetadata
 
-taskCompleted = tmdCompleted . taskMetadata
+taskCompleted = mdCompleted . taskMetadata
 
-taskDue = tmdDue . taskMetadata
-
+taskDue = mdDue . taskMetadata
 
 instance Eq Task where
    (==) (Task { taskName = tt1 })
         (Task { taskName = tt2 }) = tt1 == tt2
 
+instance Ord Task where
+   t1 >= t2 = (taskPriority t1) >= (taskPriority t2)
+
 instance Binary Task where
    get = do
       tn <- get :: Get B.ByteString
-      tmd <- get :: Get TaskMetadata
+      tmd <- get :: Get Metadata
       return Task { taskName = tn
                   , taskMetadata = tmd }
 
@@ -81,15 +60,10 @@ instance Binary Task where
 
 -- | Construct a task given a name, optional notes,
 -- an optional priority value, and an optional datetime at which it is due.
-task :: String -> Maybe String -> Maybe TaskPriority -> Maybe DateTime -> Task
+task :: String -> Maybe String -> Maybe Priority -> Maybe DateTime -> Task
 task tn mtns mtnp mtd =
    Task { taskName = bs tn
-        , taskMetadata = tmd }
-   where
-      tmd = TaskMetadata { tmdNotes = fmap bs mtns
-                         , tmdPriority = fromMaybe Low mtnp
-                         , tmdCompleted = False
-                         , tmdDue = mtd }
+        , taskMetadata = metadata mtns mtnp (Just False) mtd }
 
 {-
  - This section just contains some examples, useful for playing around with
