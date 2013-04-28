@@ -12,7 +12,7 @@ module Tasks.Types
      bs
    , bsToString
    , bsEmpty
-   , Priority
+   , Priority(..)
    , Metadata(..)
    , metadata
    ) where
@@ -61,7 +61,7 @@ instance Binary Priority where
 data Metadata = Metadata { mdNotes :: Maybe BW.ByteString
                          , mdPriority :: Priority
                          , mdCompleted :: Bool
-                         , mdDue :: Maybe DateTime } deriving Eq
+                         , mdDue :: Maybe DateTime } deriving (Show, Read, Eq)
 
 instance Binary Metadata where
    get = do
