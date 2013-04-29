@@ -8,7 +8,7 @@ module Tasks.Cli.Rep
    (
       ShortRep
    ,  LongRep
-   
+
    ,  prjShortRep
    ,  prjLongRep
    ,  tskShortRep
