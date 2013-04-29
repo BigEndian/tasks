@@ -9,6 +9,7 @@ module Tasks.Project
    , projectHasTasks
    , projectHasTask
    , projectAddTask
+   , projectRemoveTask
    , project
    
    -- Helper functions
@@ -99,3 +100,9 @@ project pnm mpnts mp md tsks =
    Project { projectName = bs pnm
            , projectTasks = tsks
            , projectMetadata = metadata mpnts mp (Just False) md }
+
+exProject = project "Example Project"
+                    (Just "A sample project")
+                    (Just Medium)
+                    Nothing
+                    exTasks
