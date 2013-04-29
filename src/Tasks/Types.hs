@@ -3,8 +3,8 @@
 -- |
 -- Module: Tasks.Types
 --
--- This module contains convenience functions useful in 
--- handling and creating bytestrings in other parts of 
+-- This module contains convenience functions useful in
+-- handling and creating bytestrings in other parts of
 -- this package, as well as the Metadata and Priority types
 
 module Tasks.Types

@@ -67,7 +67,6 @@ printProjects = do
    forM_ projects $ \proj ->
       printProject proj
 
-
 -- Menus
 listObjectsMenu :: (Show s) => [s] -> Menu s
 listObjectsMenu xs

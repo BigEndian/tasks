@@ -13,7 +13,7 @@ module Tasks.Project
    , projectAddTask
    , projectRemoveTask
    , project
-   
+
    -- Helper functions
    , projectNotes
    , projectPriority
