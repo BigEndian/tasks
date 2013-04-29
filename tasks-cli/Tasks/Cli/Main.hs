@@ -1,15 +1,26 @@
 module Tasks.Cli.Main where
 
 import Control.Monad
-import Data.Binary(decodeFile, encodeFile)
+import Data.Binary (decodeFile, encodeFile)
+import Data.Either
+import Data.List (elem)
+import Data.Maybe
 import System.FilePath
-import System.Directory(getHomeDirectory)
-import Data.Maybe(fromMaybe)
+import System.Directory (getHomeDirectory)
 
 import Tasks.Task
 import Tasks.Project
-import Tasks.Types(bs, bsToString)
+
+import Tasks.Cli.Rep
 import Tasks.Cli.Menu
+
+data Direction = Next | Previous deriving (Eq, Ord, Show, Read)
+
+direction :: Char -> Direction
+direction c
+   | c `elem` "Nn" = Next
+   | c `elem` "Pp" = Previous
+   | otherwise     = error "Invalid character passed to direction"
 
 -- | The file path at which the currently saved task database exists (if at all)
 taskFilePath :: IO FilePath
@@ -26,53 +37,37 @@ saveProjects prjs = taskFilePath >>= (`encodeFile` prjs)
 getProjects :: IO [Project]
 getProjects = taskFilePath >>= decodeFile
 
--- | Given a task, create an array of lines, each (essentially) unformatted,
--- each line containing a corresponding task property and its respective value
-taskRep :: Task -> [String]
-taskRep tsk@(Task { taskName = tnm
-                             , taskNotes = tns
-                             , taskPriority = tp
-                             , taskCompleted = tc }) =
-   [ bsToString tnm
-   , if bsToString tns == "" then "Notes: None" else "Notes: " ++ bsToString tns
-   , "Priority: " ++ show tp
-   , "Completed: " ++ (if tc then "Yes" else "No") ]
-
-projectRep :: Project -> [String]
-projectRep proj@(Project { projectName = pn
-                         , projectNotes = pnts
-                         , projectTasks = ptsks }) =
-   [
-      "Project: " ++ (bsToString pn),
-      "Project Notes: " ++ (bsToString pnts)
-   ] ++ (concatMap taskRep ptsks)
-
--- | Print a project to stdout
-printProject :: Project -> IO ()
-printProject proj = do
-   putStr . bsToString . projectName $ proj
-   putStr ": \n"
-   let ftsks = map taskRep $ projectTasks proj in
-      forM_ ftsks $ 
-         mapM_ (putStr .
-            (replicate (length spn + 1) ' ' ++) .
-            (++"\n"))
-   where
-      spn = bsToString . projectName $ proj
-
--- | Read projects from the task file path and print each one
-printProjects :: IO ()
-printProjects = do
-   projects <- getProjects
-   forM_ projects $ \proj ->
-      printProject proj
-
 -- Menus
-listObjectsMenu :: (Show s) => [s] -> Menu s
-listObjectsMenu xs
+-- | At the moment, these two custom menu constructors
+listObjectsMenu :: [a] -> ShortRep a -> Menu a
+listObjectsMenu xs sr
    | length xs > 10 = error "10 objects or fewer per generic-list menu"
    | otherwise       = Menu { menuChoices = choices
                             , menuHandler = handler }
    where
-      choices = map (\(n,s) -> choice $ '&' : (show n) ++ ". " ++ s) (zip [0..9] (map show xs))
-      handler (Choice (c:_) _) = return $ xs !! (read [c] :: Int)
+      choices = map (\(n,s) -> choice $ '&' : (show n) ++ ". " ++ s) (zip [0..9] (map sr xs))
+      handler (Choice (c:_) _, _) = return $ xs !! (read [c] :: Int)
+
+listObjectsDirMenu :: [a] -> ShortRep a -> Menu (Either Direction a)
+listObjectsDirMenu xs sr =
+      Menu { menuChoices = menuChoices ndm ++ [Choice "NnPp" "(N)ext (P)revious"] 
+           , menuHandler = handler }
+   where
+      ndm = listObjectsMenu xs sr
+      handler (c,k) =
+         if k `elem` "NnPp" then
+            return (Left $ direction k)
+         else
+            return (Right $ (xs !! (read [k] :: Int)))
+
+
+
+-- Main, with knowledge of the projects
+main' :: [Project] -> IO ()
+main' projects = return ()
+   --newprojects <- menuDisplay (listProjectsMenu projects)
+   --main' newprojects
+
+main = do
+   projects <- getProjects
+   main' projects
