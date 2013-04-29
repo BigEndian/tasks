@@ -1,4 +1,6 @@
 -- |
+-- Module: Tasks.Project
+--
 -- This module contains the Project type.
 -- Like the Task type, a Project has a name and may have notes,
 -- but it also contains zero or more task entries.
