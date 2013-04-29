@@ -19,6 +19,9 @@ module Tasks.Project
    , projectPriority
    , projectCompleted
    , projectDue
+
+   -- Debugging
+   , exProject
    ) where
 
 
