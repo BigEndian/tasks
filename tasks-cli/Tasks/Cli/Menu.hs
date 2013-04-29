@@ -50,7 +50,7 @@ choiceString :: Choice -> String
 choiceString (Choice _ s) = s
 
 data Menu r = Menu { menuChoices :: [Choice]
-                   , menuHandler :: Choice -> IO r }
+                   , menuHandler :: (Choice, Char) -> IO r }
 
 -- | Given an array of choices, and a character, find the first
 -- choice which has the corresponding key in its choiceKeys array
@@ -71,9 +71,10 @@ menuDisplay :: Menu r -> IO ()
 menuDisplay menu = mapM_ (putStrLn . choiceString) (menuChoices menu)
 
 -- | Get a choice from a user for a menu
--- It will continue to prompt until it gets a valid choice
+-- It will continue to prompt until it gets a valid choice.
+-- It will return the choice as well as the key pressed
 -- Error is called if choices is empty
-menuChoose :: Menu r -> IO Choice
+menuChoose :: Menu r -> IO (Choice, Char)
 menuChoose m@(Menu { menuChoices = choices }) = do
    old_echo <- hGetEcho stdin
    hSetEcho stdin False
@@ -81,7 +82,7 @@ menuChoose m@(Menu { menuChoices = choices }) = do
    mchc <- return $ getCorrespondingChoice choices ik
    hSetEcho stdin old_echo
    if isJust mchc then
-      return $ fromJust mchc
+      return (fromJust mchc, ik)
    else
       putStrLn "Invalid choice." >> menuChoose m
 
