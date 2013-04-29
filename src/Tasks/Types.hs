@@ -58,6 +58,8 @@ instance Binary Priority where
    get = liftM toEnum get
    put = put . fromEnum
 
+-- | The metadata type, encapsulating optional notes,
+-- a priority, a completion status, and an optional due date
 data Metadata = Metadata { mdNotes :: Maybe BW.ByteString
                          , mdPriority :: Priority
                          , mdCompleted :: Bool
