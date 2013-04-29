@@ -33,7 +33,7 @@ import Tasks.Types
 -- | The project type, containing the name, notes, and tasks fields
 data Project = Project { projectName :: B.ByteString
                        , projectTasks :: [Task]
-                       , projectMetadata :: Metadata }
+                       , projectMetadata :: Metadata } deriving (Read, Show)
 
 -- Helper functions
 projectNotes = mdNotes . projectMetadata
@@ -59,10 +59,6 @@ instance Binary Project where
       put ( projectName p
           , projectTasks p
           , projectMetadata p )
-
-
-instance Show Project where
-   showsPrec _ p = ((bsToString $ projectName p)++)
 
 -- | Convenience method to determine whether a project has any
 -- tasks whatsoever
