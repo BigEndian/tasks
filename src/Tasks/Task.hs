@@ -47,7 +47,7 @@ instance Eq Task where
         (Task { taskName = tt2 }) = tt1 == tt2
 
 instance Ord Task where
-   t1 <= t2 = (taskPriority t1) <= (taskPriority t2)
+   t1 <= t2 = taskPriority t1 <= taskPriority t2
 
 instance Binary Task where
    get = do
@@ -56,7 +56,7 @@ instance Binary Task where
       return Task { taskName = tn
                   , taskMetadata = tmd }
 
-   put t = do
+   put t =
       put ( taskName t
           , taskMetadata t )
 

@@ -50,7 +50,7 @@ bsEmpty = (==0) . length . BW.unpack
 
 instance Binary DateTime where
    put = put . toSeconds
-   get = (get :: Get Integer) >>= (return . fromSeconds)
+   get = liftM fromSeconds (get :: Get Integer)
 
 data Priority = Low | Medium | High deriving (Show, Read, Eq, Ord, Bounded, Enum)
 
