@@ -11,11 +11,11 @@ module Tasks.Cli.Rep
    
    ,  prjShortRep
    ,  prjLongRep
-   --,  tskShortRep
-   --,  tskLongRep
+   ,  tskShortRep
+   ,  tskLongRep
    ) where
 
-import Data.Maybe (fromMaybe, fromJust)
+import Data.Maybe (maybe)
 
 import Tasks.Types
 import Tasks.Task
@@ -26,16 +26,28 @@ type ShortRep a = a -> String
 
 type LongRep  a = a -> [String]
 
-
 prjShortRep :: ShortRep Project
-prjShortRep (Project { projectName = prn }) = bsToString prn
+prjShortRep = bsToString . projectName
 
 prjLongRep :: LongRep Project
 prjLongRep p =
-   [ prjShortRep p ++ " (" ++ (show $ projectPriority p) ++ " priority)"
+   [ prjShortRep p ++ " (" ++ show (projectPriority p) ++ " priority)"
    , "Notes:     " ++ pnts
-   , "Completed: " ++ (show $ projectCompleted p)
+   , "Completed: " ++ show (projectCompleted p)
    , "Due Date:  " ++ pddstr ]
    where
-      pnts   = fromMaybe "None" $ fmap bsToString (projectNotes p)
-      pddstr  = fromMaybe "None" $ fmap show (projectDue p)
+      pnts   = maybe "None" bsToString (projectNotes p)
+      pddstr  = maybe "None" show (projectDue p)
+
+tskShortRep :: ShortRep Task
+tskShortRep = bsToString . taskName
+
+tskLongRep :: LongRep Task
+tskLongRep t =
+   [ tskShortRep t ++ " (" ++ show (taskPriority t) ++ " priority)"
+   , "Notes:     " ++ tnts
+   , "Completed: " ++ show (taskCompleted t)
+   , "Due Date:  " ++ tddstr ]
+   where
+      tnts   = maybe "None" bsToString (taskNotes t)
+      tddstr = maybe "None" show (taskDue t)
