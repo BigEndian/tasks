@@ -7,9 +7,11 @@ import Data.List (elem)
 import Data.Maybe
 import System.FilePath
 import System.Directory (getHomeDirectory)
+import System.IO (hSetEcho, stdin)
 
 import Tasks.Task
 import Tasks.Project
+import Tasks.Types
 
 import Tasks.Cli.Rep
 import Tasks.Cli.Menu
@@ -37,29 +39,42 @@ saveProjects prjs = taskFilePath >>= (`encodeFile` prjs)
 getProjects :: IO [Project]
 getProjects = taskFilePath >>= decodeFile
 
--- Menus
--- | At the moment, these two custom menu constructors
-listObjectsMenu :: (Rep a) => [a] -> Menu a
-listObjectsMenu xs
-   | length xs > 10 = error "10 objects or fewer per generic-list menu"
-   | otherwise       = Menu { menuChoices = choices
-                            , menuHandler = handler }
-   where
-      choices = map (\(n,s) -> choice $ '&' : (show n) ++ ". " ++ s) (zip [0..9] (map shortRep xs))
-      handler (Choice (c:_) _, _) = return $ xs !! (read [c] :: Int)
+promptAndRead :: String -> IO String
+promptAndRead prompt =
+   putStr prompt >> hSetEcho stdin True >> getLine >>= 
+      (\ln -> hSetEcho stdin False >> return ln)
 
-listObjectsDirMenu :: (Rep a) => [a] -> Menu (Either Direction a)
-listObjectsDirMenu xs =
-      Menu { menuChoices = menuChoices ndm ++ [Choice "NnPp" "(N)ext (P)revious"] 
-           , menuHandler = handler }
-   where
-      ndm = listObjectsMenu xs
-      handler (c,k) =
-         if k `elem` "NnPp" then
-            return (Left $ direction k)
-         else
-            return (Right $ (xs !! (read [k] :: Int)))
+taskEditPrompt chr
+   | chr `elem` "Nn" = "Enter new task name: "
+   | chr `elem` "Oo" = "Enter new task notes: "
+   | otherwise       = error "Invalid character"
 
+taskEditMenuHandler :: Task -> (Choice, Char) -> IO (Maybe Task)
+taskEditMenuHandler tsk (Choice chrs _, chr)
+   | chrs == "Qq" = return Nothing
+   | chrs == "Nn" = do
+      newName <- inpString
+      return $ Just $ tsk { taskName = newName }
+   | chrs == "Oo" = do
+      newNotes <- inpString
+      return $ Just $ 
+         tsk { taskMetadata = tmd { mdNotes = notesOrNothing newNotes } }
+   where
+      tmd = taskMetadata tsk
+      prompt = taskEditPrompt chr
+      inpString = liftM bs $ promptAndRead prompt
+      notesOrNothing bs = if bsEmpty bs then Nothing else Just bs
+
+taskEditMenu :: Task -> Menu Task (Maybe Task)
+taskEditMenu tsk = Menu { menuChoices  = choices
+                        , menuInternal = tsk
+                        , menuHandler = taskEditMenuHandler }
+   where
+      tn = bsToString (taskName tsk)
+      tns = bsToString (fromMaybe (bs "None") $ taskNotes tsk)
+      choices = [ Choice "Nn" ("Task (N)ame:  " ++ tn)
+                , Choice "Oo" ("Task N(o)tes: " ++ tns)
+                , Choice "Qq" "(Q)uit editing" ]
 
 
 -- Main, with knowledge of the projects
