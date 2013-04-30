@@ -14,13 +14,13 @@ import Control.Monad (liftM)
 import Data.Char (isAlpha, toUpper, toLower)
 import Data.List (elemIndex)
 import Data.Maybe (isJust, fromJust)
-import System.IO (hGetEcho, hSetEcho, stdin)
+import System.IO (hSetEcho, stdin)
 
 -- | A datatype used to represent a choice in a menu.
 -- The characters represents which keys may be used to select
 -- the choice, and the string is used to display the effect
 -- of the choice.
-data Choice = Choice [Char] String deriving Show
+data Choice = Choice String String deriving Show
 
 -- | Construct a choice given a string.
 -- This method should be used instead of calling the Choice constructor
@@ -42,45 +42,45 @@ choice text
       parenthesize s = '(' : (s!!1) : ')' : drop 2 s
 
 -- | Extract the keys from a choice
-choiceKeys :: Choice -> [Char]
+choiceKeys :: Choice -> String
 choiceKeys (Choice cs _) = cs
 
 -- | Extract the string from a choice
 choiceString :: Choice -> String
 choiceString (Choice _ s) = s
 
-data Menu r = Menu { menuChoices :: [Choice]
-                   , menuHandler :: (Choice, Char) -> IO r }
+data Menu i r = Menu { menuChoices :: [Choice]
+                     , menuInternal :: i
+                     , menuHandler :: i -> (Choice, Char) -> IO r }
 
 -- | Given an array of choices, and a character, find the first
 -- choice which has the corresponding key in its choiceKeys array
 -- May return Nothing if no choice matched
 getCorrespondingChoice :: [Choice] -> Char -> Maybe Choice
 getCorrespondingChoice [] _ = Nothing
-getCorrespondingChoice choices ik = do
-      if length matches == 0 then
+getCorrespondingChoice choices ik =
+      if null matches then
          Nothing
       else
          Just (head matches)
    where
-      choiceMatches chr chc = any (==chr) (choiceKeys chc)
+      choiceMatches chr chc = chr `elem` choiceKeys chc
       matches = filter (choiceMatches ik) choices
 
 -- | Display a menu's entries through the terminal
-menuDisplay :: Menu r -> IO ()
+menuDisplay :: Menu i r -> IO ()
 menuDisplay menu = mapM_ (putStrLn . choiceString) (menuChoices menu)
 
 -- | Get a choice from a user for a menu
 -- It will continue to prompt until it gets a valid choice.
 -- It will return the choice as well as the key pressed
 -- Error is called if choices is empty
-menuChoose :: Menu r -> IO (Choice, Char)
+menuChoose :: Menu i r -> IO (Choice, Char)
 menuChoose m@(Menu { menuChoices = choices }) = do
-   old_echo <- hGetEcho stdin
    hSetEcho stdin False
    ik <- getChar
-   mchc <- return $ getCorrespondingChoice choices ik
-   hSetEcho stdin old_echo
+   let mchc = getCorrespondingChoice choices ik
+   hSetEcho stdin True
    if isJust mchc then
       return (fromJust mchc, ik)
    else
@@ -88,5 +88,5 @@ menuChoose m@(Menu { menuChoices = choices }) = do
 
 -- | Display a menu, get a choice, then pass the resultant choice
 -- to the menu's handler
-menuRun :: Menu r -> IO r
-menuRun menu = menuDisplay menu >> menuChoose menu >>= menuHandler menu
+menuRun :: Menu i r -> IO r
+menuRun menu = menuDisplay menu >> menuChoose menu >>= menuHandler menu (menuInternal menu)
