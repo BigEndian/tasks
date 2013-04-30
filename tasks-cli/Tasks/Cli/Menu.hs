@@ -83,8 +83,8 @@ menuChoose m@(Menu { menuChoices = choices }) = do
    hSetEcho stdin True
    if isJust mchc then
       return (fromJust mchc, ik)
-   else
-      putStrLn "Invalid choice." >> menuChoose m
+      else
+         putStrLn "Invalid choice." >> menuChoose m
 
 -- | Display a menu, get a choice, then pass the resultant choice
 -- to the menu's handler
