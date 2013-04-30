@@ -2,7 +2,6 @@ module Tasks.Cli.Main where
 
 import Control.Monad
 import Data.Binary (decodeFile, encodeFile)
-import Data.Either
 import Data.List (elem)
 import Data.Maybe
 import System.FilePath
