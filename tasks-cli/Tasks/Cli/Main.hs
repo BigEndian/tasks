@@ -39,21 +39,21 @@ getProjects = taskFilePath >>= decodeFile
 
 -- Menus
 -- | At the moment, these two custom menu constructors
-listObjectsMenu :: [a] -> ShortRep a -> Menu a
-listObjectsMenu xs sr
+listObjectsMenu :: (Rep a) => [a] -> Menu a
+listObjectsMenu xs
    | length xs > 10 = error "10 objects or fewer per generic-list menu"
    | otherwise       = Menu { menuChoices = choices
                             , menuHandler = handler }
    where
-      choices = map (\(n,s) -> choice $ '&' : (show n) ++ ". " ++ s) (zip [0..9] (map sr xs))
+      choices = map (\(n,s) -> choice $ '&' : (show n) ++ ". " ++ s) (zip [0..9] (map shortRep xs))
       handler (Choice (c:_) _, _) = return $ xs !! (read [c] :: Int)
 
-listObjectsDirMenu :: [a] -> ShortRep a -> Menu (Either Direction a)
-listObjectsDirMenu xs sr =
+listObjectsDirMenu :: (Rep a) => [a] -> Menu (Either Direction a)
+listObjectsDirMenu xs =
       Menu { menuChoices = menuChoices ndm ++ [Choice "NnPp" "(N)ext (P)revious"] 
            , menuHandler = handler }
    where
-      ndm = listObjectsMenu xs sr
+      ndm = listObjectsMenu xs
       handler (c,k) =
          if k `elem` "NnPp" then
             return (Left $ direction k)
