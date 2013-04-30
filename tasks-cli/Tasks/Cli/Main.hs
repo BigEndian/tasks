@@ -16,14 +16,6 @@ import Tasks.Types
 import Tasks.Cli.Rep
 import Tasks.Cli.Menu
 
-data Direction = Next | Previous deriving (Eq, Ord, Show, Read)
-
-direction :: Char -> Direction
-direction c
-   | c `elem` "Nn" = Next
-   | c `elem` "Pp" = Previous
-   | otherwise     = error "Invalid character passed to direction"
-
 -- | The file path at which the currently saved task database exists (if at all)
 taskFilePath :: IO FilePath
 taskFilePath = liftM (</> ".taskdb") getHomeDirectory
