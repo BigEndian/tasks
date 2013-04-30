@@ -2,7 +2,7 @@
 --  see http://haskell.org/cabal/users-guide/
 
 name:                tasks
-version:             0.1.0.4
+version:             0.1.0.5
 synopsis:            Simple command-line task manager
 -- description:         
 license:             GPL-2
