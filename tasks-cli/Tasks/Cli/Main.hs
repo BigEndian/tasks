@@ -63,8 +63,8 @@ taskEditPrompt chr
 -- | The menu handler for the edit task menu.
 -- Returns Nothing if no changes were made, otherwise
 -- returns the modified task
-taskEditMenuHandler :: Task -> (Choice, Char) -> IO (Maybe Task)
-taskEditMenuHandler tsk (Choice chrs _, chr)
+tskEditMenuHandler :: Task -> (Choice, Char) -> IO (Maybe Task)
+tskEditMenuHandler tsk (Choice chrs _, chr)
    | chrs == "Qq" = return Nothing
    | chrs == "Nn" = do
       newName <- inpString
@@ -81,27 +81,16 @@ taskEditMenuHandler tsk (Choice chrs _, chr)
 
 -- | The menu creation method used for editing a particular task.
 -- Currently only allows for the editing of a tasks's notes and name
-taskEditMenu :: Task -> Menu Task (Maybe Task)
-taskEditMenu tsk = Menu { menuChoices  = choices
+tskEditMenu :: Task -> Menu Task (Maybe Task)
+tskEditMenu tsk = Menu { menuChoices  = choices
                         , menuInternal = tsk
-                        , menuHandler = taskEditMenuHandler }
+                        , menuHandler = tskEditMenuHandler }
    where
       tn = bsToString (taskName tsk)
       tns = bsToString (fromMaybe (bs "None") $ taskNotes tsk)
       choices = [ Choice "Nn" ("Task (N)ame:  " ++ tn)
                 , Choice "Oo" ("Task N(o)tes: " ++ tns)
                 , Choice "Qq" "(Q)uit editing" ]
-
-{-
-projectEditMenu :: Project -> Menu Project (Maybe Project)
-projectEditMenu prj = Menu { menuChoices = choices
-                           , menuInternal = prj
-                           , menuHandler = projectEditMenuHandler }
-   where
-      pn      = bsToString (projectName prj)
-      ptsks   = projectTasks prj
-      choices = -}
-
 
 -- Main, with knowledge of the projects
 main' :: [Project] -> IO ()
