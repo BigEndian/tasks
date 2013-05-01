@@ -49,9 +49,16 @@ choiceKeys (Choice cs _) = cs
 choiceString :: Choice -> String
 choiceString (Choice _ s) = s
 
+-- | getChar, but without echo
+getChar' :: IO Char
+getChar' =
+   hSetEcho stdin False >>
+   getChar >>= (\c -> hSetEcho stdin True >> return c)
+
 data Menu i r = Menu { menuChoices :: [Choice]
                      , menuInternal :: i
-                     , menuHandler :: i -> (Choice, Char) -> IO r }
+                     , menuHandler :: i -> (Choice, Char) -> IO r
+                     , menuSubmenus :: [Menu i r] }
 
 -- | Given an array of choices, and a character, find the first
 -- choice which has the corresponding key in its choiceKeys array
@@ -71,22 +78,50 @@ getCorrespondingChoice choices ik =
 menuDisplay :: Menu i r -> IO ()
 menuDisplay menu = mapM_ (putStrLn . choiceString) (menuChoices menu)
 
--- | Get a choice from a user for a menu
+-- | Get a choice from a user for a menu.
+-- If no valid key is supplied, Nothing will be returned
+menuChooseOptional :: Menu i r -> IO (Maybe (Choice, Char))
+menuChooseOptional m@(Menu { menuChoices = choices }) = do
+   hSetEcho stdin False
+   ik <- getChar
+   let mchc = getCorrespondingChoice choices ik
+   hSetEcho stdin True
+   return (if isJust mchc then Just (fromJust mchc, ik) else Nothing)
+
+-- | Get a choice from a user for a menu.
 -- It will continue to prompt until it gets a valid choice.
 -- It will return the choice as well as the key pressed
 -- Error is called if choices is empty
 menuChoose :: Menu i r -> IO (Choice, Char)
 menuChoose m@(Menu { menuChoices = choices }) = do
-   hSetEcho stdin False
-   ik <- getChar
-   let mchc = getCorrespondingChoice choices ik
-   hSetEcho stdin True
-   if isJust mchc then
-      return (fromJust mchc, ik)
-      else
-         putStrLn "Invalid choice." >> menuChoose m
+   mchc <- menuChooseOptional m
+   maybe (putStrLn "Invalid choice" >> menuChoose m) return mchc
+
+-- | Given a set of menus, read a key from the user and return
+-- a tuple containing whichever Menu first matched, the corresponding
+-- choice, and the character inputted
+menusChoose :: [Menu i r] -> IO (Menu i r, Choice, Char)
+menusChoose menus = do
+   ik <- getChar'
+   let all_choices = map menuChoices menus
+   let applied     = map (`getCorrespondingChoice` ik) all_choices
+   let matches     = filter (isJust . snd) (zip [0..] applied)
+   if null matches then
+      putStr "Invalid choice" >> menusChoose menus
+   else
+      let mtch = head matches in
+         return (menus !! fst mtch, fromJust (snd mtch), ik)
+   
 
 -- | Display a menu, get a choice, then pass the resultant choice
 -- to the menu's handler
 menuRun :: Menu i r -> IO r
-menuRun menu = menuDisplay menu >> menuChoose menu >>= menuHandler menu (menuInternal menu)
+menuRun m@(Menu { menuSubmenus = msbms }) =
+   if null msbms then
+      menuDisplay m >> menuChoose m >>= menuHandler m (menuInternal m)
+   else
+      mapM_ menuDisplay menus >>
+      menusChoose menus >>= (\(mmenu,chc,chr) ->
+         menuHandler mmenu (menuInternal mmenu) (chc, chr))
+   where
+      menus = m:msbms
