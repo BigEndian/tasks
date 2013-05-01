@@ -82,10 +82,8 @@ menuDisplay menu = mapM_ (putStrLn . choiceString) (menuChoices menu)
 -- If no valid key is supplied, Nothing will be returned
 menuChooseOptional :: Menu i r -> IO (Maybe (Choice, Char))
 menuChooseOptional m@(Menu { menuChoices = choices }) = do
-   hSetEcho stdin False
-   ik <- getChar
+   ik <- getChar'
    let mchc = getCorrespondingChoice choices ik
-   hSetEcho stdin True
    return (if isJust mchc then Just (fromJust mchc, ik) else Nothing)
 
 -- | Get a choice from a user for a menu.
