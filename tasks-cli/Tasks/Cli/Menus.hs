@@ -55,6 +55,8 @@ promptAndRead prompt =
    putStr prompt >> hSetEcho stdin True >> getLine >>= 
       (\ln -> hSetEcho stdin False >> return ln)
 
+-- | Ask the user whether they're certain they'd like to delete the object
+-- described by the given string
 deletionPrompt :: String -> IO Bool
 deletionPrompt obs = do
    putStr $ "Are you sure you want to delete this " ++ obs ++ "? (y/n) "
@@ -65,14 +67,18 @@ deletionPrompt obs = do
    else
       deletionPrompt obs
 
+-- | Choices for organization, such as task/project deletion
 orgChoices :: String -> [Choice]
 orgChoices obs =
       map (\(Choice chs s) -> Choice chs (s ++ obs)) choices ++ [Choice "Qq" "(Q)uit editing"]
    where
       choices = [ Choice "Dd" "(D)elete " ]
 
-orgHandler :: String -> a -> (Choice, Char) -> IO (Action a)
-orgHandler obs obj (Choice chrs _, chr)
+-- | Given the object itself, and a string whose value represents the object,
+-- construct a handler to be used to confer that the user chose to delete/move/etc
+-- an object.
+orgHandler :: a -> String -> (Choice, Char) -> IO (Action a)
+orgHandler obj obs (Choice chrs _, chr)
    | chr `elem` "Dd" = do
       res <- deletionPrompt obs;
       if res then
@@ -82,10 +88,10 @@ orgHandler obs obj (Choice chrs _, chr)
    | chr `elem` "Qq" = return $ Unmodified obj
    | otherwise = return $ Unmodified obj
 
-orgMenu :: a -> String -> Menu a (Action a)
+-- | The menu used to display organizational choices to the user
+orgMenu :: a -> String -> Menu (Action a)
 orgMenu obj obs = Menu { menuChoices  = orgChoices obs
-                       , menuInternal = obj
-                       , menuHandler  = orgHandler obs
+                       , menuHandler  = orgHandler obj obs
                        , menuSubmenus = [] }
 
 -- | Determine the prompt to be displayed given a certain
@@ -117,10 +123,9 @@ tskEditMenuHandler tsk c@(Choice chrs _, chr)
 
 -- | The menu creation method used for editing a particular task.
 -- Currently only allows for the editing of a tasks's notes and name
-tskEditMenu :: Task -> Menu Task (Action Task)
+tskEditMenu :: Task -> Menu (Action Task)
 tskEditMenu tsk = Menu { menuChoices   = choices
-                        , menuInternal = tsk
-                        , menuHandler  = tskEditMenuHandler
+                        , menuHandler  = tskEditMenuHandler tsk
                         , menuSubmenus = [orgMenu tsk "Task"] }
    where
       tn = bsToString (taskName tsk)
