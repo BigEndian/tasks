@@ -4,7 +4,9 @@
 -- editing a project, task removal, etc.
 module Tasks.Cli.Menus
    (
-      numbered
+      Action(..)
+
+   ,  numbered
    ,  promptAndRead
 
    ,  tskEditMenuHandler
@@ -13,7 +15,9 @@ module Tasks.Cli.Menus
    ) where
 
 import Control.Monad
+import Data.Char (toLower)
 import Data.Maybe
+import Data.Either
 import System.IO (hSetEcho, stdin)
 
 import Tasks.Task
@@ -22,6 +26,12 @@ import Tasks.Types
 
 import Tasks.Cli.Rep
 import Tasks.Cli.Menu
+
+-- | A type meant to describe actions which may be
+-- performed on Tasks and Projects. For example, editing
+-- a task's name, dissociating a task,
+-- from a project, deleting a task, deleting a project, etc.
+data Action t = Delete t | Modified t | Unmodified t deriving (Show, Read, Eq, Ord)
 
 -- | Given a list of representable objects,
 -- return a set of choices representing those
@@ -45,6 +55,39 @@ promptAndRead prompt =
    putStr prompt >> hSetEcho stdin True >> getLine >>= 
       (\ln -> hSetEcho stdin False >> return ln)
 
+deletionPrompt :: String -> IO Bool
+deletionPrompt obs = do
+   putStr $ "Are you sure you want to delete this " ++ obs ++ "? (y/n) "
+   c <- liftM toLower getChar
+   putStrLn ""
+   if c == 'y' || c == 'n' then
+      return (c == 'y')
+   else
+      deletionPrompt obs
+
+orgChoices :: String -> [Choice]
+orgChoices obs =
+      map (\(Choice chs s) -> Choice chs (s ++ obs)) choices ++ [Choice "Qq" "(Q)uit editing"]
+   where
+      choices = [ Choice "Dd" "(D)elete " ]
+
+orgHandler :: String -> a -> (Choice, Char) -> IO (Action a)
+orgHandler obs obj (Choice chrs _, chr)
+   | chr `elem` "Dd" = do
+      res <- deletionPrompt obs;
+      if res then
+         return $ Delete obj
+         else
+            return $ Unmodified obj
+   | chr `elem` "Qq" = return $ Unmodified obj
+   | otherwise = return $ Unmodified obj
+
+orgMenu :: a -> String -> Menu a (Action a)
+orgMenu obj obs = Menu { menuChoices  = orgChoices obs
+                       , menuInternal = obj
+                       , menuHandler  = orgHandler obs
+                       , menuSubmenus = [] }
+
 -- | Determine the prompt to be displayed given a certain
 -- character inputted by the user
 tskEditPrompt :: Char -> String
@@ -56,15 +99,15 @@ tskEditPrompt chr
 -- | The menu handler for the edit task menu.
 -- Returns Nothing if no changes were made, otherwise
 -- returns the modified task
-tskEditMenuHandler :: Task -> (Choice, Char) -> IO (Maybe Task)
-tskEditMenuHandler tsk (Choice chrs _, chr)
-   | chrs == "Qq" = return Nothing
+tskEditMenuHandler :: Task -> (Choice, Char) -> IO (Action Task)
+tskEditMenuHandler tsk c@(Choice chrs _, chr)
+   | chrs == "Qq" = return $ Unmodified tsk
    | chrs == "Nn" = do
       newName <- inpString
-      return $ Just $ tsk { taskName = newName }
+      return $ Modified tsk { taskName = newName }
    | chrs == "Oo" = do
       newNotes <- inpString
-      return $ Just $ 
+      return $ Modified $ 
          tsk { taskMetadata = tmd { mdNotes = notesOrNothing newNotes } }
    where
       tmd = taskMetadata tsk
@@ -74,13 +117,14 @@ tskEditMenuHandler tsk (Choice chrs _, chr)
 
 -- | The menu creation method used for editing a particular task.
 -- Currently only allows for the editing of a tasks's notes and name
-tskEditMenu :: Task -> Menu Task (Maybe Task)
-tskEditMenu tsk = Menu { menuChoices  = choices
+tskEditMenu :: Task -> Menu Task (Action Task)
+tskEditMenu tsk = Menu { menuChoices   = choices
                         , menuInternal = tsk
-                        , menuHandler = tskEditMenuHandler }
+                        , menuHandler  = tskEditMenuHandler
+                        , menuSubmenus = [orgMenu tsk "Task"] }
    where
       tn = bsToString (taskName tsk)
       tns = bsToString (fromMaybe (bs "None") $ taskNotes tsk)
       choices = [ Choice "Nn" ("Task (N)ame:  " ++ tn)
                 , Choice "Oo" ("Task N(o)tes: " ++ tns)
-                , Choice "Qq" "(Q)uit editing" ]
+                , Choice "" "" ]
