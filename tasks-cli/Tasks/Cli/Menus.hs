@@ -27,6 +27,7 @@ import Tasks.Types
 import Tasks.Cli.Rep
 import Tasks.Cli.Menu
 
+-- | A type representing a user's chosen direction
 data Direction = DLeft | DRight deriving (Show, Read, Eq, Ord)
 
 -- | A type meant to describe actions which may be
