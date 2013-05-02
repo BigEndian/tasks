@@ -15,7 +15,7 @@ import Control.Monad (liftM)
 import Data.Functor
 import Data.Char (isAlpha, toUpper, toLower)
 import Data.List (elemIndex)
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, fromMaybe)
 import System.IO (hSetEcho, stdin)
 
 -- | A datatype used to represent a choice in a menu.
@@ -59,6 +59,7 @@ getChar' =
 
 data Menu r = Menu { menuChoices :: [Choice]
                    , menuHandler :: (Choice, Char) -> IO r
+                   , menuSubmenuHandler :: Maybe (r -> IO r) -- Handle the result of a submenu
                    , menuSubmenus :: [Menu r] }
 
 -- | Given an array of choices, and a character, find the first
@@ -115,22 +116,31 @@ menusChoose menus = do
 -- | Display a menu, get a choice, then pass the resultant choice
 -- to the menu's handler
 menuRun :: Menu r -> IO r
-menuRun m@(Menu { menuSubmenus = msbms }) =
+menuRun m@(Menu { menuSubmenus = msbms
+                , menuSubmenuHandler = msmh }) =
    if null msbms then
       menuDisplay m >> menuChoose m >>= menuHandler m
    else
       mapM_ menuDisplay menus >>
       menusChoose menus >>= (\(mmenu,chc,chr) ->
-         menuHandler mmenu (chc, chr))
+         menuHandler mmenu (chc, chr)) >>=
+         fromMaybe return msmh
    where
       menus = m:msbms
 
 -- | Given a menu, create one which does the same thing,
 -- but applies the given function f to the handler's return value.
 -- This allows you to build a menu on top of another, one which
--- does something else with the result of the base menu
+-- does something else with the result of the base menu.
+-- If the menu has a submenu handler, it's removed
 menuWithMod :: (r1 -> IO r2) -> Menu r1 -> Menu r2
-menuWithMod f m@(Menu { menuHandler = mh, menuSubmenus = msms }) =
-      m { menuHandler = nmh mh, menuSubmenus = map (menuWithMod f) msms }
+menuWithMod f m@(Menu { menuHandler = mh
+                      , menuSubmenus = msms }) =
+      m { menuSubmenuHandler = Nothing
+        , menuHandler = nmh mh
+        , menuSubmenus = map (menuWithMod f) msms }
    where
       nmh mh tup = mh tup >>= f
+
+menuWithSubMod :: (r -> IO r) -> Menu r -> Menu r
+menuWithSubMod f m = m { menuSubmenuHandler = Just f }
