@@ -14,6 +14,12 @@ module Tasks.Types
    , bsEmpty
    , Priority(..)
    , Metadata(..)
+
+   , mdEditNotes
+   , mdEditPriority
+   , mdEditCompleted
+   , mdEditDue
+
    , metadata
    ) where
 
@@ -64,6 +70,22 @@ data Metadata = Metadata { mdNotes :: Maybe BW.ByteString
                          , mdPriority :: Priority
                          , mdCompleted :: Bool
                          , mdDue :: Maybe DateTime } deriving (Show, Read, Eq)
+
+-- | Edit a given metadata's notes
+mdEditNotes :: Metadata -> Maybe BW.ByteString -> Metadata
+mdEditNotes md mnts = md { mdNotes = mnts }
+
+-- | Edit a given metadata's priority
+mdEditPriority :: Metadata -> Priority -> Metadata
+mdEditPriority md pr = md { mdPriority = pr }
+
+-- | Edit a given metadata's completion status.
+mdEditCompleted :: Metadata -> Bool -> Metadata
+mdEditCompleted md c = md { mdCompleted = c }
+
+-- | Edit a given metadata's due date
+mdEditDue :: Metadata -> Maybe DateTime -> Metadata
+mdEditDue md mdd = md { mdDue = mdd }
 
 instance Binary Metadata where
    get = do
