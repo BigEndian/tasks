@@ -125,11 +125,10 @@ tskEditMenuHandler tsk c@(Choice chrs _, chr)
 -- Currently only allows for the editing of a tasks's notes and name
 tskEditMenu :: Task -> Menu (Action Task)
 tskEditMenu tsk = Menu { menuChoices   = choices
-                        , menuHandler  = tskEditMenuHandler tsk
-                        , menuSubmenus = [orgMenu tsk "Task"] }
+                       , menuHandler   = tskEditMenuHandler tsk
+                       , menuSubmenus  = [orgMenu tsk "Task"] }
    where
       tn = bsToString (taskName tsk)
       tns = bsToString (fromMaybe (bs "None") $ taskNotes tsk)
       choices = [ Choice "Nn" ("Task (N)ame:  " ++ tn)
-                , Choice "Oo" ("Task N(o)tes: " ++ tns)
-                , Choice "" "" ]
+                , Choice "Oo" ("Task N(o)tes: " ++ tns) ]
