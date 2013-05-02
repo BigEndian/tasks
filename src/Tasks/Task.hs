@@ -14,6 +14,11 @@ module Tasks.Task
    , taskCompleted
    , taskDue
 
+   , taskEditNotes
+   , taskEditPriority
+   , taskEditCompleted
+   , taskEditDue
+
    -- Export for testing purposes
    , exTask1, exTask2, exTasks
    ) where
@@ -41,6 +46,26 @@ taskPriority = mdPriority . taskMetadata
 taskCompleted = mdCompleted . taskMetadata
 
 taskDue = mdDue . taskMetadata
+
+-- | Edit a given task's notes
+taskEditNotes :: Task -> Maybe B.ByteString -> Task
+taskEditNotes tsk@(Task { taskMetadata = tmd }) mnts =
+   tsk { taskMetadata = mdEditNotes tmd mnts }
+
+-- | Edit a given task's priority
+taskEditPriority :: Task -> Priority -> Task
+taskEditPriority tsk@(Task { taskMetadata = tmd }) p =
+   tsk { taskMetadata = mdEditPriority tmd p }
+
+-- | Edit a given task's completion status
+taskEditCompleted :: Task -> Bool -> Task
+taskEditCompleted tsk@(Task { taskMetadata = tmd }) c =
+   tsk { taskMetadata = mdEditCompleted tmd c }
+
+-- | Edit a given task's due date
+taskEditDue :: Task -> Maybe DateTime -> Task
+taskEditDue tsk@(Task { taskMetadata = tmd }) mdd =
+   tsk { taskMetadata = mdEditDue tmd mdd }
 
 instance Eq Task where
    (==) (Task { taskName = tt1 })
