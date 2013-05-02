@@ -8,9 +8,11 @@ module Tasks.Cli.Menu
    , menuDisplay
    , menuChoose
    , menuRun
+   , menuWithMod
    ) where
 
 import Control.Monad (liftM)
+import Data.Functor
 import Data.Char (isAlpha, toUpper, toLower)
 import Data.List (elemIndex)
 import Data.Maybe (isJust, fromJust)
@@ -56,8 +58,8 @@ getChar' =
    getChar >>= (\c -> hSetEcho stdin True >> return c)
 
 data Menu r = Menu { menuChoices :: [Choice]
-                     , menuHandler :: (Choice, Char) -> IO r
-                     , menuSubmenus :: [Menu r] }
+                   , menuHandler :: (Choice, Char) -> IO r
+                   , menuSubmenus :: [Menu r] }
 
 -- | Given an array of choices, and a character, find the first
 -- choice which has the corresponding key in its choiceKeys array
@@ -122,3 +124,13 @@ menuRun m@(Menu { menuSubmenus = msbms }) =
          menuHandler mmenu (chc, chr))
    where
       menus = m:msbms
+
+-- | Given a menu, create one which does the same thing,
+-- but applies the given function f to the handler's return value.
+-- This allows you to build a menu on top of another, one which
+-- does something else with the result of the base menu
+menuWithMod :: (r1 -> IO r2) -> Menu r1 -> Menu r2
+menuWithMod f m@(Menu { menuHandler = mh, menuSubmenus = msms }) =
+      m { menuHandler = nmh mh, menuSubmenus = map (menuWithMod f) msms }
+   where
+      nmh mh tup = mh tup >>= f
