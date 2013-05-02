@@ -20,6 +20,11 @@ module Tasks.Project
    , projectCompleted
    , projectDue
 
+   , projectEditNotes
+   , projectEditPriority
+   , projectEditCompleted
+   , projectEditDue
+
    -- Debugging
    , exProject
    ) where
@@ -48,6 +53,27 @@ projectPriority = mdPriority . projectMetadata
 projectCompleted = mdCompleted . projectMetadata
 
 projectDue = mdDue . projectMetadata
+
+
+-- | Edit a given project's notes
+projectEditNotes :: Project -> Maybe B.ByteString -> Project
+projectEditNotes p@(Project { projectMetadata = pmd }) mnts =
+   p { projectMetadata = mdEditNotes pmd mnts }
+
+-- | Edit a given project's priority
+projectEditPriority :: Project -> Priority -> Project
+projectEditPriority p@(Project { projectMetadata = pmd }) pr =
+   p { projectMetadata = mdEditPriority pmd pr }
+
+-- | Edit a given project's completion status
+projectEditCompleted :: Project -> Bool -> Project
+projectEditCompleted p@(Project { projectMetadata = pmd }) c =
+   p { projectMetadata = mdEditCompleted pmd c }
+
+-- | Edit a given project's due date
+projectEditDue :: Project -> Maybe DateTime -> Project
+projectEditDue p@(Project { projectMetadata = pmd }) mdd =
+   p { projectMetadata = mdEditDue pmd mdd }
 
 instance Eq Project where
    (==) (Project { projectName = pn1 })
