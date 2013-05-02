@@ -107,7 +107,7 @@ menusChoose menus = do
    let matches     = filter (isJust . snd) (zip [0..] applied)
    if null matches then
       putStr "Invalid choice" >> menusChoose menus
-   else
+      else
       let mtch = head matches in
          return (menus !! fst mtch, fromJust (snd mtch), ik)
    

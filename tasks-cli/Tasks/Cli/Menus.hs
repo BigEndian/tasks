@@ -67,7 +67,7 @@ deletionPrompt obs = do
    putStrLn ""
    if c == 'y' || c == 'n' then
       return (c == 'y')
-   else
+      else
       deletionPrompt obs
 
 -- | Choices for organization, such as task/project deletion
