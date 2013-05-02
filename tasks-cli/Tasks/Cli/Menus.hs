@@ -27,6 +27,8 @@ import Tasks.Types
 import Tasks.Cli.Rep
 import Tasks.Cli.Menu
 
+data Direction = DLeft | DRight deriving (Show, Read, Eq, Ord)
+
 -- | A type meant to describe actions which may be
 -- performed on Tasks and Projects. For example, editing
 -- a task's name, dissociating a task,
@@ -94,6 +96,19 @@ orgMenu obj obs = Menu { menuChoices  = orgChoices obs
                        , menuHandler  = orgHandler obj obs
                        , menuSubmenus = [] }
 
+dirChoices :: [Choice]
+dirChoices = [ Choice "Ll" "Go (l)eft", Choice "Rr" "Go (r)ight" ]
+
+dirHandler :: (Choice, Char) -> IO Direction
+dirHandler (Choice "Ll" _, _) = return DLeft
+dirHandler (Choice "Rr" _, _) = return DRight
+dirHandler _ = error "Invalid choice for a direction"
+
+dirMenu :: Menu Direction
+dirMenu = Menu { menuChoices = dirChoices
+               , menuHandler = dirHandler
+               , menuSubmenus = [] }
+
 -- | Determine the prompt to be displayed given a certain
 -- character inputted by the user
 tskEditPrompt :: Char -> String
@@ -132,3 +147,19 @@ tskEditMenu tsk = Menu { menuChoices   = choices
       tns = bsToString (fromMaybe (bs "None") $ taskNotes tsk)
       choices = [ Choice "Nn" ("Task (N)ame:  " ++ tn)
                 , Choice "Oo" ("Task N(o)tes: " ++ tns) ]
+
+tsksListChoices :: [Task] -> [Choice]
+tsksListChoices tsks =
+   let ten = take 10 tsks in
+      numbered ten
+
+tsksListHandler tsks (_, chr) =
+      menuRun $ menuWithMod (return . Right) $ tskEditMenu chosen
+   where
+      chosen = tsks !! (read [chr])
+
+tsksListMenu :: [Task] -> Menu (Either Direction (Action Task))
+tsksListMenu tsks =
+   Menu { menuChoices = tsksListChoices tsks
+        , menuHandler = tsksListHandler tsks
+        , menuSubmenus = [menuWithMod (return . Left) dirMenu] }
