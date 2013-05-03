@@ -16,6 +16,7 @@ cabal-version:       >=1.8
 
 library
   hs-source-dirs:      src
+  ghc-options: -fwarn-unused-imports
   exposed-modules:
    Tasks.Task
    Tasks.Project
@@ -28,6 +29,7 @@ library
 
 executable tasks
   hs-source-dirs:      tasks-cli
+  ghc-options: -fwarn-unused-imports
   main-is: Main.hs
   other-modules:
    Tasks.Cli.Main
