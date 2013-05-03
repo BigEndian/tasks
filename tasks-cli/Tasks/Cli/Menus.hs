@@ -30,7 +30,7 @@ import Tasks.Cli.Menu
 -- a task's name, dissociating a task,
 -- from a project, deleting a task, deleting a project, etc.
 data Action t = Delete t | Modified t | Unmodified t
-              | Quit t | Left | Right deriving (Show, Read, Eq, Ord)
+              | Quit t | ALeft | ARight deriving (Show, Read, Eq, Ord)
 
 -- | Given a list of representable objects,
 -- return a set of choices representing those
@@ -96,6 +96,8 @@ orgHandler obj obs (Choice chrs _, chr)
          else
             return $ Unmodified obj
    | chr `elem` "Qq" = return $ Quit obj
+   | chr `elem` "Rr" = return ARight
+   | chr `elem` "Ll" = return ALeft
 
 -- | The menu used to display organizational choices to the user.
 orgMenu :: a -> String -> Bool -> (Bool,Bool) -> Menu (Action a)
@@ -117,7 +119,6 @@ tskEditPrompt chr
 -- returns the modified task.
 tskEditMenuHandler :: Task -> (Choice, Char) -> IO (Action Task)
 tskEditMenuHandler tsk c@(Choice chrs _, chr)
-   | chrs == "Qq" = return $ Unmodified tsk
    | chrs == "Nn" = do
       newName <- inpString
       return $ Modified tsk { taskName = newName }
@@ -143,3 +144,26 @@ tskEditMenu tsk = Menu { menuChoices   = choices
       tns = bsToString (fromMaybe (bs "None") $ taskNotes tsk)
       choices = [ Choice "Nn" ("Task (N)ame:  " ++ tn)
                 , Choice "Oo" ("Task N(o)tes: " ++ tns) ]
+
+tsksListHandler :: [Task] -> Int -> (Choice, Char) -> IO (Int, Action Task)
+tsksListHandler tsks idx (chc,chr) = 
+   menuRun (tskEditMenu (tsks !! read [chr])) >>= return . (\act -> (idx, act))
+
+tsksListSubmenuHandler :: [Task] -> Int -> (Int, Action Task) -> IO (Int, Action Task)
+tsksListSubmenuHandler tsks i = smh
+   where
+      smh tup@(idx, ARight) = menuRun $ tsksListMenu tsks (i+10)
+      smh tup@(idx, ALeft)  = menuRun $ tsksListMenu tsks (i-10)
+      smh tup = return tup
+
+tsksListMenu :: [Task] -> Int -> Menu (Int, Action Task)
+tsksListMenu tsks idx = Menu { menuChoices = choices
+                             , menuSubmenuHandler = Just (tsksListSubmenuHandler tsks idx)
+                             , menuHandler = tsksListHandler tsks idx
+                             , menuSubmenus = [menuWithMod (\a -> return (idx, a)) $ orgMenu exTask1 "" False (hl, hr) ]}
+   where
+      (prior,tasks')  = splitAt idx tsks
+      (tasks,others)  = splitAt 10 tasks'
+      hl = not . null $ prior
+      hr = not . null $ others
+      choices = numbered tasks
