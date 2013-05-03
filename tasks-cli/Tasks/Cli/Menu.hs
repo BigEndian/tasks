@@ -11,8 +11,6 @@ module Tasks.Cli.Menu
    , menuWithMod
    ) where
 
-import Control.Monad (liftM)
-import Data.Functor
 import Data.Char (isAlpha, toUpper, toLower)
 import Data.List (elemIndex)
 import Data.Maybe (isJust, fromJust, fromMaybe)

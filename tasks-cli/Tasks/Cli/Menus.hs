@@ -17,11 +17,9 @@ module Tasks.Cli.Menus
 import Control.Monad
 import Data.Char (toLower)
 import Data.Maybe
-import Data.Either
 import System.IO (hSetEcho, stdin)
 
 import Tasks.Task
-import Tasks.Project
 import Tasks.Types
 
 import Tasks.Cli.Rep
