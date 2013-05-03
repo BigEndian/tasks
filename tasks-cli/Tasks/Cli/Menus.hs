@@ -29,7 +29,8 @@ import Tasks.Cli.Menu
 -- performed on Tasks and Projects. For example, editing
 -- a task's name, dissociating a task,
 -- from a project, deleting a task, deleting a project, etc.
-data Action t = Delete t | Modified t | Unmodified t deriving (Show, Read, Eq, Ord)
+data Action t = Delete t | Modified t | Unmodified t
+              | Quit t | Left | Right deriving (Show, Read, Eq, Ord)
 
 -- | Given a list of representable objects,
 -- return a set of choices representing those
@@ -47,14 +48,14 @@ numbered xs
       nchc n x = let sn = show n in
          Choice sn  (sn ++ ". " ++ shortRep x)
 
--- | Present a prompt to the user and get a string back from them
+-- | Present a prompt to the user and get a string back from them.
 promptAndRead :: String -> IO String
 promptAndRead prompt =
    putStr prompt >> hSetEcho stdin True >> getLine >>= 
       (\ln -> hSetEcho stdin False >> return ln)
 
 -- | Ask the user whether they're certain they'd like to delete the object
--- described by the given string
+-- described by the given string.
 deletionPrompt :: String -> IO Bool
 deletionPrompt obs = do
    putStr $ "Are you sure you want to delete this " ++ obs ++ "? (y/n) "
@@ -65,12 +66,23 @@ deletionPrompt obs = do
       else
       deletionPrompt obs
 
--- | Choices for organization, such as task/project deletion
-orgChoices :: String -> [Choice]
-orgChoices obs =
+-- | Choices for organization, such as task/project deletion, as well as
+-- directions.
+--
+-- The first option is a name to represent the object, e.g. "task".
+-- The second option indicates whether or not to include organizational
+-- choices (e.g. delete, move, disassociate from project).
+-- The final option is a tuple of booleans representing whether to include
+-- the left and right directional choices, respectively.
+orgChoices :: String -> Bool -> (Bool,Bool) -> [Choice]
+orgChoices obs inc_org (hl,hr) =
       map (\(Choice chs s) -> Choice chs (s ++ obs)) choices ++ [Choice "Qq" "(Q)uit editing"]
    where
-      choices = [ Choice "Dd" "(D)elete " ]
+      org_choices = if inc_org then [ Choice "Dd" "(D)elete " ] else []
+      cl = Choice "Ll" "Go (l)eft"
+      cr = Choice "Rr" "Go (r)ight"
+      dir_choices = (if hl then [cl] else []) ++ (if hr then [cr] else [])
+      choices = org_choices ++ dir_choices
 
 -- | Given the object itself, and a string whose value represents the object,
 -- construct a handler to be used to confer that the user chose to delete/move/etc
@@ -83,18 +95,17 @@ orgHandler obj obs (Choice chrs _, chr)
          return $ Delete obj
          else
             return $ Unmodified obj
-   | chr `elem` "Qq" = return $ Unmodified obj
-   | otherwise = return $ Unmodified obj
+   | chr `elem` "Qq" = return $ Quit obj
 
--- | The menu used to display organizational choices to the user
-orgMenu :: a -> String -> Menu (Action a)
-orgMenu obj obs = Menu { menuChoices  = orgChoices obs
-                       , menuHandler  = orgHandler obj obs
-                       , menuSubmenuHandler = Nothing
-                       , menuSubmenus = [] }
+-- | The menu used to display organizational choices to the user.
+orgMenu :: a -> String -> Bool -> (Bool,Bool) -> Menu (Action a)
+orgMenu obj obs inc_org dtup = Menu { menuChoices  = orgChoices obs inc_org dtup
+                                    , menuHandler  = orgHandler obj obs
+                                    , menuSubmenuHandler = Nothing
+                                    , menuSubmenus = [] }
 
 -- | Determine the prompt to be displayed given a certain
--- character inputted by the user
+-- character inputted by the user.
 tskEditPrompt :: Char -> String
 tskEditPrompt chr
    | chr `elem` "Nn" = "Enter new task name: "
@@ -103,7 +114,7 @@ tskEditPrompt chr
 
 -- | The menu handler for the edit task menu.
 -- Returns Nothing if no changes were made, otherwise
--- returns the modified task
+-- returns the modified task.
 tskEditMenuHandler :: Task -> (Choice, Char) -> IO (Action Task)
 tskEditMenuHandler tsk c@(Choice chrs _, chr)
    | chrs == "Qq" = return $ Unmodified tsk
@@ -121,12 +132,12 @@ tskEditMenuHandler tsk c@(Choice chrs _, chr)
       notesOrNothing bs = if bsEmpty bs then Nothing else Just bs
 
 -- | The menu creation method used for editing a particular task.
--- Currently only allows for the editing of a tasks's notes and name
+-- Currently only allows for the editing of a tasks's notes and name.
 tskEditMenu :: Task -> Menu (Action Task)
 tskEditMenu tsk = Menu { menuChoices   = choices
                        , menuSubmenuHandler = Nothing
                        , menuHandler   = tskEditMenuHandler tsk
-                       , menuSubmenus  = [orgMenu tsk "Task"] }
+                       , menuSubmenus  = [orgMenu tsk "Task" True (False, False)] }
    where
       tn = bsToString (taskName tsk)
       tns = bsToString (fromMaybe (bs "None") $ taskNotes tsk)
