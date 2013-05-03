@@ -27,9 +27,6 @@ import Tasks.Types
 import Tasks.Cli.Rep
 import Tasks.Cli.Menu
 
--- | A type representing a user's chosen direction
-data Direction = DLeft | DRight deriving (Show, Read, Eq, Ord)
-
 -- | A type meant to describe actions which may be
 -- performed on Tasks and Projects. For example, editing
 -- a task's name, dissociating a task,
@@ -148,19 +145,3 @@ tskEditMenu tsk = Menu { menuChoices   = choices
       tns = bsToString (fromMaybe (bs "None") $ taskNotes tsk)
       choices = [ Choice "Nn" ("Task (N)ame:  " ++ tn)
                 , Choice "Oo" ("Task N(o)tes: " ++ tns) ]
-
-tsksListChoices :: [Task] -> [Choice]
-tsksListChoices tsks =
-   let ten = take 10 tsks in
-      numbered ten
-
-tsksListHandler tsks (_, chr) =
-      menuRun $ menuWithMod (return . Right) $ tskEditMenu chosen
-   where
-      chosen = tsks !! (read [chr])
-
-tsksListMenu :: [Task] -> Menu (Either Direction (Action Task))
-tsksListMenu tsks =
-   Menu { menuChoices = tsksListChoices tsks
-        , menuHandler = tsksListHandler tsks
-        , menuSubmenus = [menuWithMod (return . Left) dirMenu] }
