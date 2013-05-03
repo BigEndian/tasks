@@ -92,20 +92,8 @@ orgHandler obj obs (Choice chrs _, chr)
 orgMenu :: a -> String -> Menu (Action a)
 orgMenu obj obs = Menu { menuChoices  = orgChoices obs
                        , menuHandler  = orgHandler obj obs
+                       , menuSubmenuHandler = Nothing
                        , menuSubmenus = [] }
-
-dirChoices :: [Choice]
-dirChoices = [ Choice "Ll" "Go (l)eft", Choice "Rr" "Go (r)ight" ]
-
-dirHandler :: (Choice, Char) -> IO Direction
-dirHandler (Choice "Ll" _, _) = return DLeft
-dirHandler (Choice "Rr" _, _) = return DRight
-dirHandler _ = error "Invalid choice for a direction"
-
-dirMenu :: Menu Direction
-dirMenu = Menu { menuChoices = dirChoices
-               , menuHandler = dirHandler
-               , menuSubmenus = [] }
 
 -- | Determine the prompt to be displayed given a certain
 -- character inputted by the user
@@ -138,6 +126,7 @@ tskEditMenuHandler tsk c@(Choice chrs _, chr)
 -- Currently only allows for the editing of a tasks's notes and name
 tskEditMenu :: Task -> Menu (Action Task)
 tskEditMenu tsk = Menu { menuChoices   = choices
+                       , menuSubmenuHandler = Nothing
                        , menuHandler   = tskEditMenuHandler tsk
                        , menuSubmenus  = [orgMenu tsk "Task"] }
    where
