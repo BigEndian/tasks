@@ -15,14 +15,16 @@ import Tasks.Types
 import Tasks.Task
 import Tasks.Project
 
+import Tasks.Cli.Menu (Choice(..))
+
 class Rep a where
    shortRep :: a -> String
    longRep  :: a -> [String]
-   typeName :: String
+   typeName :: a -> String
 
 
 instance Rep Project where
-   typeName = "Project"
+   typeName _ = "Project"
    shortRep = bsToString . projectName
    longRep p =
       [ shortRep p ++ " (" ++ show (projectPriority p) ++ " priority)"
@@ -32,9 +34,8 @@ instance Rep Project where
       where
          pnts   = maybe "None" bsToString (projectNotes p)
          pddstr  = maybe "None" show (projectDue p)
-
 instance Rep Task where
-   typeName = "Task"
+   typeName _ = "Task"
    shortRep = bsToString . taskName
    longRep t = 
       [ shortRep t ++ " (" ++ show (taskPriority t) ++ " priority)"
