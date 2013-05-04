@@ -18,6 +18,7 @@ import Control.Monad
 import Data.Char (toLower)
 import Data.Maybe
 import System.IO (hSetEcho, stdin)
+import System.Console.Readline (readline)
 
 import Tasks.Task
 import Tasks.Types
@@ -49,9 +50,9 @@ numbered xs
          Choice sn  (sn ++ ". " ++ shortRep x)
 
 -- | Present a prompt to the user and get a string back from them.
-promptAndRead :: String -> IO String
+promptAndRead :: String -> IO (Maybe String)
 promptAndRead prompt =
-   putStr prompt >> hSetEcho stdin True >> getLine >>= 
+   hSetEcho stdin True >> readline prompt >>= 
       (\ln -> hSetEcho stdin False >> return ln)
 
 -- | Ask the user whether they're certain they'd like to delete the object
@@ -160,7 +161,7 @@ tsksListMenu :: [Task] -> Int -> Menu (Int, Action Task)
 tsksListMenu tsks idx = Menu { menuChoices = choices
                              , menuSubmenuHandler = Just (tsksListSubmenuHandler tsks idx)
                              , menuHandler = tsksListHandler tsks idx
-                             , menuSubmenus = [menuWithMod (\a -> return (idx, a)) $ orgMenu exTask1 "" False (hl, hr) ]}
+                             , menuSubmenus = [menuMod (\a -> return (idx, a)) $ orgMenu exTask1 "" False (hl, hr) ]}
    where
       (prior,tasks')  = splitAt idx tsks
       (tasks,others)  = splitAt 10 tasks'
