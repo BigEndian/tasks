@@ -46,7 +46,7 @@ isARight ARight = True
 isARight _ = False
 
 modifyAt :: Int -> [a] -> a -> [a]
-modifyAt idx xs nx = let (ls,(_:rs)) = splitAt idx xs in
+modifyAt idx xs nx = let (ls,_:rs) = splitAt idx xs in
    ls ++ [nx] ++ rs
 
 -- | Given a list of representable objects,
@@ -72,7 +72,7 @@ promptAndRead prompt =
          (\ln -> hSetEcho stdin False >> return ln)
    where
       keepReading = readline prompt >>=
-         (\r -> if isJust r then return . fromJust $ r else keepReading)
+         maybe keepReading return
 
 -- | Ask the user whether they're certain they'd like to delete the object
 -- described by the given string.
@@ -98,10 +98,10 @@ orgChoices :: String -> Bool -> (Bool,Bool) -> [Choice]
 orgChoices obs inc_org (hl,hr) =
       map (\(Choice chs s) -> Choice chs (s ++ obs)) choices ++ [Choice "Qq" "(Q)uit editing"]
    where
-      org_choices = if inc_org then [ Choice "Dd" "(D)elete " ] else []
+      org_choices = [Choice "Dd" "(D)elete " | inc_org]
       cl = Choice "Ll" "Go (l)eft"
       cr = Choice "Rr" "Go (r)ight"
-      dir_choices = (if hl then [cl] else []) ++ (if hr then [cr] else [])
+      dir_choices = [cl | hl] ++ [cr | hr]
       choices = org_choices ++ dir_choices
 
 -- | Given the object itself, and a string whose value represents the object,
@@ -111,10 +111,7 @@ orgHandler :: a -> String -> (Choice, Char) -> IO (Action a)
 orgHandler obj obs (Choice chrs _, chr)
    | chr `elem` "Dd" = do
       res <- deletionPrompt obs;
-      if res then
-         return $ Delete obj
-         else
-            return $ Unmodified obj
+      return (if res then Delete obj else Unmodified obj)
    | chr `elem` "Qq" = return $ Quit obj
    | chr `elem` "Rr" = return ARight
    | chr `elem` "Ll" = return ALeft
@@ -167,7 +164,9 @@ tskEditMenu tsk = Menu { menuChoices   = choices
 
 tsksListHandler :: [Task] -> Int -> (Choice, Char) -> IO (Int, Action Task)
 tsksListHandler tsks idx (chc,chr) = 
-      menuRun (tskEditMenu (tsks !! read [chr])) >>= return . (\act -> (idx, act))
+      liftM wrap $ menuRun (tskEditMenu (tsks !! read [chr]))
+   where
+      wrap act = (idx, act)
 
 tsksListSubmenuHandler :: [Task] -> Int -> (Int, Action Task) -> IO (Int, Action Task)
 tsksListSubmenuHandler tsks i = smh
