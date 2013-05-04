@@ -1,7 +1,6 @@
 module Tasks.Cli.Menu
    (
      Choice(..)
-   , choice
    , choiceKeys
    , choiceString
    , Menu(..)
@@ -21,25 +20,6 @@ import System.IO (hSetEcho, stdin)
 -- the choice, and the string is used to display the effect
 -- of the choice.
 data Choice = Choice String String deriving Show
-
--- | Construct a choice given a string.
--- This method should be used instead of calling the Choice constructor
--- directly, as this will check for an ampersand and prepare the choice for
--- being displayed in a menu.
---
--- > choice "&List projects" == Choice "Ll" "(L)ist projects"
-choice :: String -> Choice
-choice text
-      | isJust midx = let (l,r) = splitAt idx text in
-         Choice (uandl $ r !! 1) (l ++ parenthesize r)
-      | otherwise   =
-         error $ "Text must have an ampersand to determine which " ++
-                 "character to use to select this choice"
-   where
-      midx = elemIndex '&' text
-      idx = fromJust midx
-      uandl c = if isAlpha c then [toUpper c, toLower c] else [c]
-      parenthesize s = '(' : (s!!1) : ')' : drop 2 s
 
 -- | Extract the keys from a choice
 choiceKeys :: Choice -> String
