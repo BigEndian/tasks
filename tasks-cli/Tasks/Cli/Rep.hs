@@ -18,9 +18,11 @@ import Tasks.Project
 class Rep a where
    shortRep :: a -> String
    longRep  :: a -> [String]
+   typeName :: String
 
 
 instance Rep Project where
+   typeName = "Project"
    shortRep = bsToString . projectName
    longRep p =
       [ shortRep p ++ " (" ++ show (projectPriority p) ++ " priority)"
@@ -32,6 +34,7 @@ instance Rep Project where
          pddstr  = maybe "None" show (projectDue p)
 
 instance Rep Task where
+   typeName = "Task"
    shortRep = bsToString . taskName
    longRep t = 
       [ shortRep t ++ " (" ++ show (taskPriority t) ++ " priority)"
