@@ -2,16 +2,10 @@ module Tasks.Cli.Main where
 
 import Control.Monad
 import Data.Binary (decodeFile, encodeFile)
-import Data.List (elem)
-import Data.Maybe
 import System.FilePath
 import System.Directory (getHomeDirectory)
 
-import Tasks.Task
 import Tasks.Project
-import Tasks.Types
-
-import Tasks.Cli.Menus
 
 -- | The file path at which the currently saved task database exists (if at all)
 taskFilePath :: IO FilePath
