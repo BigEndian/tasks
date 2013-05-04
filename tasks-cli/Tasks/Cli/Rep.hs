@@ -15,13 +15,10 @@ import Tasks.Types
 import Tasks.Task
 import Tasks.Project
 
-import Tasks.Cli.Menu (Choice(..))
-
 class Rep a where
    shortRep :: a -> String
    longRep  :: a -> [String]
    typeName :: a -> String
-
 
 instance Rep Project where
    typeName _ = "Project"
@@ -34,6 +31,7 @@ instance Rep Project where
       where
          pnts   = maybe "None" bsToString (projectNotes p)
          pddstr  = maybe "None" show (projectDue p)
+
 instance Rep Task where
    typeName _ = "Task"
    shortRep = bsToString . taskName
