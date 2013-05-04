@@ -7,7 +7,8 @@ module Tasks.Cli.Menu
    , menuDisplay
    , menuChoose
    , menuRun
-   , menuWithMod
+   , menuMod
+   , menuSubMod
    ) where
 
 import Data.Char (isAlpha, toUpper, toLower)
@@ -111,14 +112,16 @@ menuRun m@(Menu { menuSubmenus = msbms
 -- This allows you to build a menu on top of another, one which
 -- does something else with the result of the base menu.
 -- If the menu has a submenu handler, it's removed
-menuWithMod :: (r1 -> IO r2) -> Menu r1 -> Menu r2
-menuWithMod f m@(Menu { menuHandler = mh
+menuMod :: (r1 -> IO r2) -> Menu r1 -> Menu r2
+menuMod f m@(Menu { menuHandler = mh
                       , menuSubmenus = msms }) =
       m { menuSubmenuHandler = Nothing
         , menuHandler = nmh mh
-        , menuSubmenus = map (menuWithMod f) msms }
+        , menuSubmenus = map (menuMod f) msms }
    where
       nmh mh tup = mh tup >>= f
 
-menuWithSubMod :: (r -> IO r) -> Menu r -> Menu r
-menuWithSubMod f m = m { menuSubmenuHandler = Just f }
+-- | Givne a menu, create one which applies a different handler to
+-- any submenus which happen to be chosen when the new menu is ran.
+menuSubMod :: (r -> IO r) -> Menu r -> Menu r
+menuSubMod f m = m { menuSubmenuHandler = Just f }
