@@ -7,6 +7,7 @@ module Tasks.Cli.Menu
    , menuDisplay
    , menuChoose
    , menuRun
+   , menuRunWhile
    , menuMod
    , menuSubMod
    ) where
@@ -104,6 +105,14 @@ menuRun m@(Menu { menuSubmenus = msbms
          fromMaybe return msmh
    where
       menus = m:msbms
+
+menuRunWhile :: (r -> Bool) -> Menu r -> IO r
+menuRunWhile f menu = do
+   res <- menuRun menu;
+   if not $ f res then
+      return res
+      else
+         menuRunWhile f menu
 
 -- | Given a menu, create one which does the same thing,
 -- but applies the given function f to the handler's return value.
