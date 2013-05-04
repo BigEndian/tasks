@@ -9,9 +9,8 @@ module Tasks.Cli.Menus
    ,  numbered
    ,  promptAndRead
 
-   ,  tskEditMenuHandler
    ,  tskEditMenu
-   ,  tskEditPrompt
+   ,  tsksListMenu
    ) where
 
 import Control.Monad
@@ -32,6 +31,23 @@ import Tasks.Cli.Menu
 -- from a project, deleting a task, deleting a project, etc.
 data Action t = Delete t | Modified t | Unmodified t
               | Quit t | ALeft | ARight deriving (Show, Read, Eq, Ord)
+
+isDelete (Delete _) = True
+isDelete _ = False
+isModified (Modified _) = True
+isModified _ = False
+isUnmodified (Unmodified _) = True
+isUnmodified _ = False
+isQuit (Quit _) = True
+isQuit _ = False
+isALeft ALeft = True
+isALeft _ = False
+isARight ARight = True
+isARight _ = False
+
+modifyAt :: Int -> [a] -> a -> [a]
+modifyAt idx xs nx = let (ls,(_:rs)) = splitAt idx xs in
+   ls ++ [nx] ++ rs
 
 -- | Given a list of representable objects,
 -- return a set of choices representing those
@@ -151,17 +167,17 @@ tskEditMenu tsk = Menu { menuChoices   = choices
 
 tsksListHandler :: [Task] -> Int -> (Choice, Char) -> IO (Int, Action Task)
 tsksListHandler tsks idx (chc,chr) = 
-   menuRun (tskEditMenu (tsks !! read [chr])) >>= return . (\act -> (idx, act))
+      menuRun (tskEditMenu (tsks !! read [chr])) >>= return . (\act -> (idx, act))
 
 tsksListSubmenuHandler :: [Task] -> Int -> (Int, Action Task) -> IO (Int, Action Task)
 tsksListSubmenuHandler tsks i = smh
    where
-      smh tup@(idx, ARight) = menuRun $ tsksListMenu tsks (i+10)
-      smh tup@(idx, ALeft)  = menuRun $ tsksListMenu tsks (i-10)
+      smh tup@(idx, ARight) = menuRun $ tsksListMenu' tsks (i+10)
+      smh tup@(idx, ALeft)  = menuRun $ tsksListMenu' tsks (i-10)
       smh tup = return tup
 
-tsksListMenu :: [Task] -> Int -> Menu (Int, Action Task)
-tsksListMenu tsks idx = Menu { menuChoices = choices
+tsksListMenu' :: [Task] -> Int -> Menu (Int, Action Task)
+tsksListMenu' tsks idx = Menu { menuChoices = choices
                              , menuSubmenuHandler = Just (tsksListSubmenuHandler tsks idx)
                              , menuHandler = tsksListHandler tsks idx
                              , menuSubmenus = [menuMod (\a -> return (idx, a)) $ orgMenu exTask1 "" False (hl, hr) ]}
@@ -171,3 +187,6 @@ tsksListMenu tsks idx = Menu { menuChoices = choices
       hl = not . null $ prior
       hr = not . null $ others
       choices = numbered tasks
+
+tsksListMenu :: [Task] -> Menu (Int, Action Task)
+tsksListMenu tasks = tsksListMenu' tasks 0
