@@ -11,8 +11,6 @@ module Tasks.Cli.Menu
    , menuSubMod
    ) where
 
-import Data.Char (isAlpha, toUpper, toLower)
-import Data.List (elemIndex)
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import System.IO (hSetEcho, stdin)
 
