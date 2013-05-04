@@ -9,8 +9,6 @@ module Tasks.Cli.Rep
       Rep(..)
    ) where
 
-import Data.Maybe (maybe)
-
 import Tasks.Types
 import Tasks.Task
 import Tasks.Project
