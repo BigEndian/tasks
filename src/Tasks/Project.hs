@@ -30,11 +30,9 @@ module Tasks.Project
    ) where
 
 
-import Control.Monad
 import Data.DateTime
-import Data.Maybe
 import Data.Binary
-import Data.List(elem, delete, null)
+import Data.List (delete)
 import qualified Data.ByteString as B
 
 import Tasks.Task

@@ -25,7 +25,6 @@ module Tasks.Task
 
 import Data.Binary
 import Data.DateTime
-import Data.Maybe
 import qualified Data.ByteString as B
 
 import Tasks.Types
