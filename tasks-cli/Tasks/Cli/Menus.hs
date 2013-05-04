@@ -50,10 +50,13 @@ numbered xs
          Choice sn  (sn ++ ". " ++ shortRep x)
 
 -- | Present a prompt to the user and get a string back from them.
-promptAndRead :: String -> IO (Maybe String)
+promptAndRead :: String -> IO String
 promptAndRead prompt =
-   hSetEcho stdin True >> readline prompt >>= 
-      (\ln -> hSetEcho stdin False >> return ln)
+      hSetEcho stdin True >> keepReading >>= 
+         (\ln -> hSetEcho stdin False >> return ln)
+   where
+      keepReading = readline prompt >>=
+         (\r -> if isJust r then return . fromJust $ r else keepReading)
 
 -- | Ask the user whether they're certain they'd like to delete the object
 -- described by the given string.
