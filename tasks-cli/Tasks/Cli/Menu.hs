@@ -15,6 +15,7 @@ module Tasks.Cli.Menu
    , menuSubMod
    ) where
 
+import System.Console.ANSI (clearScreen)
 import Control.Monad (liftM)
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import System.IO (hSetEcho, stdin)
@@ -77,7 +78,7 @@ menuChooseOptional m@(Menu { menuChoices = choices }) = do
 menuChoose :: Menu r -> IO (Choice, Char)
 menuChoose m@(Menu { menuChoices = choices }) = do
    mchc <- menuChooseOptional m
-   maybe (putStrLn "Invalid choice" >> menuChoose m) return mchc
+   maybe (menuChoose m) return mchc
 
 -- | Given a set of menus, read a key from the user and return
 -- a tuple containing whichever Menu first matched, the corresponding
@@ -89,11 +90,11 @@ menusChoose menus = do
    let applied     = map (`getCorrespondingChoice` ik) all_choices
    let matches     = filter (isJust . snd) (zip [0..] applied)
    if null matches then
-      putStr "Invalid choice" >> menusChoose menus
+      menusChoose menus
       else
       let mtch = head matches in
          return (menus !! fst mtch, fromJust (snd mtch), ik)
-   
+
 
 -- | Display a menu, get a choice, then pass the resultant choice
 -- to the menu's handler
@@ -103,7 +104,7 @@ menuRun m@(Menu { menuSubmenus = msbms
    if null msbms then
       menuDisplay m >> menuChoose m >>= menuHandler m
    else
-      mapM_ menuDisplay menus >>
+      clearScreen >> mapM_ menuDisplay menus >>
       menusChoose menus >>= (\(mmenu,chc,chr) ->
          menuHandler mmenu (chc, chr)) >>=
          fromMaybe return msmh
