@@ -8,10 +8,14 @@ module Tasks.Cli.Menu
    , menuChoose
    , menuRun
    , menuRunWhile
+   , menuRunAccWhile
+   , menuRunAccWhile1
+   , menuRunModifying
    , menuMod
    , menuSubMod
    ) where
 
+import Control.Monad (liftM)
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import System.IO (hSetEcho, stdin)
 
@@ -113,6 +117,26 @@ menuRunWhile f menu = do
       return res
       else
          menuRunWhile f menu
+
+menuRunAccWhile1 :: (r -> Bool) -> Menu r -> IO [r]
+menuRunAccWhile1 f menu = do
+   res <- menuRun menu;
+   if not $ f res then
+      return [res]
+      else
+      liftM (res:) $ menuRunAccWhile f menu
+
+menuRunAccWhile :: (r -> Bool) -> Menu r -> IO [r]
+menuRunAccWhile f menu = liftM init $ menuRunAccWhile1 f menu
+
+menuRunModifying :: a -> (a -> r -> (a, Menu r)) -> (r -> Bool) -> (Menu r) -> IO r
+menuRunModifying iacc gen test menu = do
+   res' <- menuRun menu;
+   if test res' then
+      return res'
+      else
+         let (nacc,nmenu) = gen iacc res' in
+            menuRunModifying nacc gen test nmenu
 
 -- | Given a menu, create one which does the same thing,
 -- but applies the given function f to the handler's return value.
