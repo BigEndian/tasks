@@ -32,18 +32,11 @@ import Tasks.Cli.Menu
 data Action t = Delete t | Modified t | Unmodified t
               | Quit t | ALeft | ARight deriving (Show, Read, Eq, Ord)
 
+isModified (Modified _) = True
+isModified _            = False
 isDelete (Delete _) = True
-isDelete _ = False
-isQuit (Quit _) = True
-isQuit _ = False
-fromAct (Delete t) = t
-fromAct (Modified t) = t
-fromAct (Quit t) = t
-fromAct _ = error "Can't retrive a value from a type constructor which doesn't take one!"
+isDelete _          = False
 
-modifyAt :: Int -> [a] -> a -> [a]
-modifyAt idx xs nx = let (ls,_:rs) = splitAt idx xs in
-   ls ++ [nx] ++ rs
 
 -- | Given a list of representable objects,
 -- return a set of choices representing those
@@ -137,61 +130,66 @@ tskEditPrompt chr
 -- | The menu handler for the edit task menu.
 -- Returns Nothing if no changes were made, otherwise
 -- returns the modified task.
-tskEditMenuHandler :: Task -> (Choice, Char) -> IO (Action Task)
-tskEditMenuHandler tsk c@(Choice chrs _, chr)
+tskEditMenuHandler :: Task -> Bool -> (Choice, Char) -> IO (Action Task)
+tskEditMenuHandler tsk modified c@(Choice chrs _, chr)
    | chrs == "Nn" = do
       newName <- inpString
-      return $ Modified tsk { taskName = newName }
+      let mtask = tsk { taskName = newName }
+      menuRun $ tskEditMenu mtask True
    | chrs == "Oo" = do
       newNotes <- inpString
-      return $ Modified $ 
-         tsk { taskMetadata = tmd { mdNotes = notesOrNothing newNotes } }
+      let mtask = tsk { taskMetadata = tmd { mdNotes = notesOrNothing newNotes } }
+      menuRun $ tskEditMenu mtask True
    where
       tmd = taskMetadata tsk
       prompt = tskEditPrompt chr
       inpString = liftM bs $ promptAndRead prompt
       notesOrNothing bs = if bsEmpty bs then Nothing else Just bs
 
+
 -- | The menu creation method used for editing a particular task.
 -- Currently only allows for the editing of a tasks's notes and name.
-tskEditMenu :: Task -> Menu (Action Task)
-tskEditMenu tsk = Menu { menuChoices   = tskChoices tsk
-                       , menuSubmenuHandler = Nothing
-                       , menuHandler   = tskEditMenuHandler tsk
-                       , menuSubmenus  = [orgMenu tsk "Task" True (False, False)] }
-
-tsksListHandler :: [Task] -> Int -> (Choice, Char) -> IO (Int, Action Task)
-tsksListHandler tsks idx (chc,chr) = do
-      let etask = tsks !! (read [chr])
-      let tem t = menuMod (\a -> return (idx, a)) (tskEditMenu t)
-      (_,act) <- menuRunModifying etask
-         (\t (_,act) -> (t, tem (fromAct act)))
-         stopAt
-         (tem etask)
-      let new_tasks = handleAction (idx,act)
-      menuRun (tsksListMenu new_tasks)
+tskEditMenu :: Task -> Bool -> Menu (Action Task)
+tskEditMenu tsk mod = Menu { menuChoices   = tskChoices tsk
+                           , menuSubmenuHandler = Just wrap
+                           , menuHandler   = tskEditMenuHandler tsk mod
+                           , menuSubmenus  = [orgMenu tsk "Task" True (False, False)] }
    where
-      (ls,_:rs) = splitAt idx tsks
-      stopAt (_,act) = isQuit act || isDelete act
+      wrap act@(Quit t) = return (if mod then Modified t else Unmodified t)
+      -- Unmodified from orgMenu means the deletion prompt was brought up but refused
+      wrap act@(Unmodified t) = menuRun $ tskEditMenu tsk mod
+      wrap act = return act
+
+tsksListHandler :: [Task] -> Int -> (Choice, Char) -> IO [(Int, Action Task)]
+tsksListHandler tsks bidx (chc,chr) = do
+      let etask = tsks !! tidx
+      resact <- menuRun $ tskEditMenu etask False
+      let modified  = isModified resact || isDelete resact
+      let new_tasks = if modified then handleAction (tidx, resact) else tsks
+      liftM ((tidx,resact):) $ menuRun (tsksListMenu' new_tasks bidx)
+   where
+      tidx = read [chr]
+      (ls,_:rs) = splitAt tidx tsks
       handleAction (idx, Delete t) = ls++rs
-      handleAction (idx, Modified t) = modifyAt idx tsks t
+      handleAction (idx, Modified t) = ls++[t]++rs
       handleAction (idx, Unmodified t) = tsks
       -- If a quit was passed, it doesn't mean that no changes were made. This will
       -- (eventually) be fixed
-      handleAction (idx, Quit t) = modifyAt idx tsks t
+      handleAction (idx, Quit t) = ls++[t]++rs
 
-tsksListSubmenuHandler :: [Task] -> Int -> (Int, Action Task) -> IO (Int, Action Task)
-tsksListSubmenuHandler tsks i = smh
+tsksListSubmenuHandler :: [Task] -> Int -> [(Int, Action Task)] -> IO [(Int, Action Task)]
+tsksListSubmenuHandler tsks i (lact:oacts) =
+      liftM (++oacts) (smh lact)
    where
-      smh tup@(idx, ARight) = menuRun $ tsksListMenu' tsks (i+10)
-      smh tup@(idx, ALeft)  = menuRun $ tsksListMenu' tsks (i-10)
-      smh tup = return tup
+      smh (idx, ARight) = menuRun $ tsksListMenu' tsks (i+10)
+      smh (idx, ALeft) = menuRun $ tsksListMenu' tsks (i-10)
+      smh tup = return [tup]
 
-tsksListMenu' :: [Task] -> Int -> Menu (Int, Action Task)
+tsksListMenu' :: [Task] -> Int -> Menu [(Int, Action Task)]
 tsksListMenu' tsks idx = Menu { menuChoices = choices
-                             , menuSubmenuHandler = Just (tsksListSubmenuHandler tsks idx)
-                             , menuHandler = tsksListHandler tsks idx
-                             , menuSubmenus = [menuMod (\a -> return (idx, a)) $ orgMenu exTask1 "" False (hl, hr) ]}
+                          , menuSubmenuHandler = Just (tsksListSubmenuHandler tsks idx)
+                          , menuHandler = tsksListHandler tsks idx
+                          , menuSubmenus = [menuMod (\a -> return [(0, a)]) $ orgMenu exTask1 "" False (hl, hr) ]}
    where
       (prior,tasks')  = splitAt idx tsks
       (tasks,others)  = splitAt 10 tasks'
@@ -199,5 +197,5 @@ tsksListMenu' tsks idx = Menu { menuChoices = choices
       hr = not . null $ others
       choices = numbered tasks
 
-tsksListMenu :: [Task] -> Menu (Int, Action Task)
+tsksListMenu :: [Task] -> Menu [(Int, Action Task)]
 tsksListMenu tasks = tsksListMenu' tasks 0
