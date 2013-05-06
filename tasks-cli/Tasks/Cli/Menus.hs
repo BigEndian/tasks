@@ -19,8 +19,9 @@ import Data.Maybe
 import System.IO (hSetEcho, stdin)
 import System.Console.Readline (readline)
 
-import Tasks.Task
 import Tasks.Types
+import Tasks.Task
+import Tasks.Project
 
 import Tasks.Cli.Rep
 import Tasks.Cli.Menu
@@ -196,6 +197,13 @@ tsksListMenu' tsks idx = Menu { menuChoices = choices
       hl = not . null $ prior
       hr = not . null $ others
       choices = numbered tasks
+
+prjChoices :: Project -> [Choice]
+prjChoices p = [ Choice "Nn" ("Project Name" ++ pn)
+               , Choice "Oo" ("Project Notes" ++ pnts) ]
+   where
+      pn = bsToString (projectName p)
+      pnts = fromMaybe "None" (fmap bsToString $ projectNotes p)
 
 tsksListMenu :: [Task] -> Menu [(Int, Action Task)]
 tsksListMenu tasks = tsksListMenu' tasks 0
