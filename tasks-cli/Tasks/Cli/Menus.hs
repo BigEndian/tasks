@@ -108,7 +108,8 @@ orgHandler obj obs (Choice chrs _, chr)
 
 -- | The menu used to display organizational choices to the user.
 orgMenu :: a -> String -> Bool -> (Bool,Bool) -> Menu (Action a)
-orgMenu obj obs inc_org dtup = Menu { menuChoices  = orgChoices obs inc_org dtup
+orgMenu obj obs inc_org dtup = Menu { menuTitle = padString '=' 35 "Organizational Options"
+                                    , menuChoices  = orgChoices obs inc_org dtup
                                     , menuHandler  = orgHandler obj obs
                                     , menuSubmenuHandler = Nothing
                                     , menuSubmenus = [] }
@@ -151,7 +152,8 @@ tskEditMenuHandler tsk modified c@(Choice chrs _, chr)
 -- | The menu creation method used for editing a particular task.
 -- Currently only allows for the editing of a tasks's notes and name.
 tskEditMenu :: Task -> Bool -> Menu (Action Task)
-tskEditMenu tsk mod = Menu { menuChoices   = tskChoices tsk
+tskEditMenu tsk mod = Menu { menuTitle = padString '=' 35 "Edit Task"
+                           , menuChoices   = tskChoices tsk
                            , menuSubmenuHandler = Just wrap
                            , menuHandler   = tskEditMenuHandler tsk mod
                            , menuSubmenus  = [orgMenu tsk "Task" True (False, False)] }
@@ -187,10 +189,12 @@ tsksListSubmenuHandler tsks i (lact:oacts) =
       smh tup = return [tup]
 
 tsksListMenu' :: [Task] -> Int -> Menu [(Int, Action Task)]
-tsksListMenu' tsks idx = Menu { menuChoices = choices
-                          , menuSubmenuHandler = Just (tsksListSubmenuHandler tsks idx)
-                          , menuHandler = tsksListHandler tsks idx
-                          , menuSubmenus = [menuMod (\a -> return [(0, a)]) $ orgMenu exTask1 "" False (hl, hr) ]}
+tsksListMenu' tsks idx =
+      Menu { menuTitle = padString '=' 35 "Task List"
+           , menuChoices = choices
+           , menuSubmenuHandler = Just (tsksListSubmenuHandler tsks idx)
+           , menuHandler = tsksListHandler tsks idx
+           , menuSubmenus = [menuMod (\a -> return [(0, a)]) $ orgMenu exTask1 "" False (hl, hr) ]}
    where
       (prior,tasks')  = splitAt idx tsks
       (tasks,others)  = splitAt 10 tasks'
