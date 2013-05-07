@@ -25,7 +25,7 @@ import System.IO (hSetEcho, stdin)
 -- The characters represents which keys may be used to select
 -- the choice, and the string is used to display the effect
 -- of the choice.
-data Choice = Choice String String deriving Show
+data Choice = Choice String String deriving (Show, Read, Eq, Ord)
 
 -- | Extract the keys from a choice
 choiceKeys :: Choice -> String
@@ -117,17 +117,23 @@ menusChoose menus = do
 -- | Display a menu, get a choice, then pass the resultant choice
 -- to the menu's handler
 menuRun :: Menu r -> IO r
-menuRun m@(Menu { menuSubmenus = msbms
-                , menuSubmenuHandler = msmh }) =
-   if null msbms then
-      menuDisplay m >> menuChoose m >>= menuHandler m
-   else
-      clearScreen >> menuDisplay m >>
-      menusChoose menus >>= (\(mmenu,chc,chr) ->
-         menuHandler mmenu (chc, chr)) >>=
-         fromMaybe return msmh
+menuRun m@(Menu { menuChoices  = mchcs
+                , menuSubmenus = msbms
+                , menuSubmenuHandler = msmh }) = do
+   case null msbms of
+      True ->
+         (menuDisplay m >> menuChoose m >>= menuHandler m)
+      otherwise -> do
+         clearScreen
+         menuDisplay m
+         (mmenu,chc,chr) <- menusChoose menus
+         res <- menuHandler mmenu (chc, chr)
+         handleRes res chc
    where
       menus = m:msbms
+      handleRes r chc
+         | chc `elem` mchcs = return r
+         | otherwise        = fromMaybe return msmh $ r
 
 menuRunWhile :: (r -> Bool) -> Menu r -> IO r
 menuRunWhile f menu = do
