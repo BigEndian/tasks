@@ -163,6 +163,9 @@ tskEditMenu tsk mod = Menu { menuTitle = padString '=' 35 "Edit Task"
       wrap act@(Unmodified t) = menuRun $ tskEditMenu tsk mod
       wrap act = return act
 
+-- | Currently, runs the task edit menu, determines which task is modified,
+-- replaces the modified task in the task list, then runs a new task list menu
+-- with the modified set of tasks.
 tsksListHandler :: [Task] -> Int -> (Choice, Char) -> IO [(Int, Action Task)]
 tsksListHandler tsks bidx (chc,chr) = do
       let etask = tsks !! tidx
@@ -184,6 +187,7 @@ tsksListSubmenuHandler :: [Task] -> Int -> [(Int, Action Task)] -> IO [(Int, Act
 tsksListSubmenuHandler tsks i (lact:oacts) =
       liftM (++oacts) (smh lact)
    where
+      -- Render a different set of tasks when given a right or a left
       smh (idx, ARight) = menuRun $ tsksListMenu' tsks (i+10)
       smh (idx, ALeft) = menuRun $ tsksListMenu' tsks (i-10)
       smh tup = return [tup]
@@ -202,12 +206,13 @@ tsksListMenu' tsks idx =
       hr = not . null $ others
       choices = numbered tasks
 
+
+tsksListMenu :: [Task] -> Menu [(Int, Action Task)]
+tsksListMenu tasks = tsksListMenu' tasks 0
+
 prjChoices :: Project -> [Choice]
 prjChoices p = [ Choice "Nn" ("Project Name" ++ pn)
                , Choice "Oo" ("Project Notes" ++ pnts) ]
    where
       pn = bsToString (projectName p)
       pnts = fromMaybe "None" (fmap bsToString $ projectNotes p)
-
-tsksListMenu :: [Task] -> Menu [(Int, Action Task)]
-tsksListMenu tasks = tsksListMenu' tasks 0
