@@ -3,6 +3,7 @@ module Tasks.Cli.Menu
      Choice(..)
    , choiceKeys
    , choiceString
+   , padString
    , Menu(..)
    , menuDisplay
    , menuChoose
@@ -40,10 +41,24 @@ getChar' =
    hSetEcho stdin False >>
    getChar >>= (\c -> hSetEcho stdin True >> return c)
 
-data Menu r = Menu { menuChoices :: [Choice]
+data Menu r = Menu { menuTitle :: String
+                   , menuChoices :: [Choice]
                    , menuHandler :: (Choice, Char) -> IO r
                    , menuSubmenuHandler :: Maybe (r -> IO r) -- Handle the result of a submenu
                    , menuSubmenus :: [Menu r] }
+
+-- | Pad a string with char to an approximate length
+-- Both sides surrounding the given string will be equal in length,
+-- so the resultant string may not be of the exact specified length
+padString :: Char -> Int -> String -> String
+padString c l s = let midLength = length s in
+   if midLength >= l then
+      s
+   else
+      ps c (l - midLength - 2) (" "++s++" ")
+   where
+      ps c l s = if l <= 0 then s else ps c (l-2) ([c] ++ s ++ [c])
+
 
 -- | Given an array of choices, and a character, find the first
 -- choice which has the corresponding key in its choiceKeys array
@@ -61,7 +76,10 @@ getCorrespondingChoice choices ik =
 
 -- | Display a menu's entries through the terminal
 menuDisplay :: Menu r -> IO ()
-menuDisplay menu = mapM_ (putStrLn . choiceString) (menuChoices menu)
+menuDisplay menu@(Menu { menuTitle = mtit }) = do
+      putStrLn mtit
+      mapM_ (putStrLn . choiceString) (menuChoices menu)
+      mapM_ (putStrLn . choiceString) (concatMap menuChoices $ menuSubmenus menu)
 
 -- | Get a choice from a user for a menu.
 -- If no valid key is supplied, Nothing will be returned
@@ -104,7 +122,7 @@ menuRun m@(Menu { menuSubmenus = msbms
    if null msbms then
       menuDisplay m >> menuChoose m >>= menuHandler m
    else
-      clearScreen >> mapM_ menuDisplay menus >>
+      clearScreen >> menuDisplay m >>
       menusChoose menus >>= (\(mmenu,chc,chr) ->
          menuHandler mmenu (chc, chr)) >>=
          fromMaybe return msmh
@@ -130,7 +148,7 @@ menuRunAccWhile1 f menu = do
 menuRunAccWhile :: (r -> Bool) -> Menu r -> IO [r]
 menuRunAccWhile f menu = liftM init $ menuRunAccWhile1 f menu
 
-menuRunModifying :: a -> (a -> r -> (a, Menu r)) -> (r -> Bool) -> (Menu r) -> IO r
+menuRunModifying :: a -> (a -> r -> (a, Menu r)) -> (r -> Bool) -> Menu r -> IO r
 menuRunModifying iacc gen test menu = do
    res' <- menuRun menu;
    if test res' then
@@ -146,7 +164,7 @@ menuRunModifying iacc gen test menu = do
 -- If the menu has a submenu handler, it's removed
 menuMod :: (r1 -> IO r2) -> Menu r1 -> Menu r2
 menuMod f m@(Menu { menuHandler = mh
-                      , menuSubmenus = msms }) =
+                  , menuSubmenus = msms }) =
       m { menuSubmenuHandler = Nothing
         , menuHandler = nmh mh
         , menuSubmenus = map (menuMod f) msms }
