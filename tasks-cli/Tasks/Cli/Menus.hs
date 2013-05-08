@@ -31,12 +31,28 @@ import Tasks.Cli.Menu
 -- a task's name, dissociating a task,
 -- from a project, deleting a task, deleting a project, etc.
 data Action t = Delete t | Modified t | Unmodified t
-              | Quit t | ALeft | ARight deriving (Show, Read, Eq, Ord)
+              | Quit t | ALeft | ARight deriving (Eq, Ord)
+
+instance (Show t) => Show (Action t) where
+   show act = case act of
+      Modified t   -> "Modified "   ++ show t
+      Unmodified t -> "Unmodified " ++ show t
+      Delete t     -> "Delete "     ++ show t
+      Quit t       -> "Quit "       ++ show t
+      ALeft        -> "ALeft"
+      ARight       -> "ARight"
 
 isModified (Modified _) = True
 isModified _            = False
 isDelete (Delete _) = True
 isDelete _          = False
+
+fromAction :: (Show t) => Action t -> t
+fromAction (Delete t)     = t
+fromAction (Modified t)   = t
+fromAction (Unmodified t) = t
+fromAction (Quit t)       = t
+fromAction act            = error ("Invalid action of " ++ show act)
 
 
 -- | Given a list of representable objects,
@@ -166,53 +182,58 @@ tskEditMenu tsk mod = Menu { menuTitle = padString '=' 35 "Edit Task"
 -- | Currently, runs the task edit menu, determines which task is modified,
 -- replaces the modified task in the task list, then runs a new task list menu
 -- with the modified set of tasks.
-tsksListHandler :: [Task] -> Int -> (Choice, Char) -> IO [(Int, Action Task)]
-tsksListHandler tsks bidx (chc,chr) = do
-      let etask = tsks !! tidx
+tsksListHandler :: [Action Task] -> Int -> (Choice, Char) -> IO [Action Task]
+tsksListHandler tacts bidx (chc,chr) = do
+      let etidx         = bidx + (read [chr] :: Int)
+      let etact         = tacts !! etidx
+      let etask         = fromAction etact
       resact <- menuRun $ tskEditMenu etask False
       let modified  = isModified resact || isDelete resact
-      let new_tasks = if modified then handleAction (tidx, resact) else tsks
-      liftM ((tidx,resact):) $ menuRun (tsksListMenu' new_tasks bidx)
+      let new_tacts = if modified then handleAction resact else tacts
+      menuRun (tsksListMenu' new_tacts bidx)
    where
-      tidx = read [chr]
-      (ls,_:rs) = splitAt tidx tsks
-      handleAction (idx, Delete t) = ls++rs
-      handleAction (idx, Modified t) = ls++[t]++rs
-      handleAction (idx, Unmodified t) = tsks
-      -- If a quit was passed, it doesn't mean that no changes were made. This will
-      -- (eventually) be fixed
-      handleAction (idx, Quit t) = ls++[t]++rs
+      (ls,_:rs) = splitAt (bidx+read [chr]) tacts
+      handleAction (Delete t) = ls++rs
+      handleAction act@(Modified t) = ls++[act]++rs
+      handleAction (Unmodified t) = tacts
+      handleAction (Quit t) = ls++[Unmodified t]++rs
 
-tsksListSubmenuHandler :: [Task] -> Int -> [(Int, Action Task)] -> IO [(Int, Action Task)]
-tsksListSubmenuHandler tsks i (lact:oacts) =
-      liftM (++oacts) (smh lact)
-   where
-      -- Render a different set of tasks when given a right or a left
-      smh (idx, ARight) = menuRun $ tsksListMenu' tsks (i+10)
-      smh (idx, ALeft) = menuRun $ tsksListMenu' tsks (i-10)
-      smh tup = return [tup]
+tsksListSubmenuHandler :: Int -> [Action Task] -> IO [Action Task]
+tsksListSubmenuHandler bidx (lact:oacts) =
+   -- lact represents the action chosen on the org menu by the user
+   case lact of
+      Quit t       -> return oacts
+      Unmodified t -> return oacts
+      ALeft        -> menuRun $ tsksListMenu' oacts (bidx-10)
+      ARight       -> menuRun $ tsksListMenu' oacts (bidx+10)
+      otherwise    -> fail "unmatched action from the org submenu"
 
-tsksListMenu' :: [Task] -> Int -> Menu [(Int, Action Task)]
-tsksListMenu' tsks idx =
+tsksListMenu' :: [Action Task] -> Int -> Menu [Action Task]
+tsksListMenu' acts idx =
       Menu { menuTitle = padString '=' 35 "Task List"
            , menuChoices = choices
-           , menuSubmenuHandler = Just (tsksListSubmenuHandler tsks idx)
-           , menuHandler = tsksListHandler tsks idx
-           , menuSubmenus = [menuMod (\a -> return [(0, a)]) $ orgMenu exTask1 "" False (hl, hr) ]}
+           , menuHandler = tsksListHandler acts idx
+           , menuSubmenuHandler = Just (tsksListSubmenuHandler idx)
+           , menuSubmenus = [menuMod orgh orgm] }
    where
-      (prior,tasks')  = splitAt idx tsks
-      (tasks,others)  = splitAt 10 tasks'
+      (prior,tacts')  = splitAt idx acts
+      (tacts,others)  = splitAt 10 tacts'
+      ftask           = fromAction $ head acts
       hl = not . null $ prior
       hr = not . null $ others
-      choices = numbered tasks
+      choices = numbered . map fromAction $ tacts
+      orgh act = return $ act:acts
+      orgm = orgMenu ftask "" False (hl, hr)
 
 
-tsksListMenu :: [Task] -> Menu [(Int, Action Task)]
-tsksListMenu tasks = tsksListMenu' tasks 0
+tsksListMenu :: [Task] -> Menu [Action Task]
+tsksListMenu tasks = tsksListMenu' asActs 0
+   where
+      asActs = map Unmodified tasks
 
 prjChoices :: Project -> [Choice]
 prjChoices p = [ Choice "Nn" ("Project Name" ++ pn)
                , Choice "Oo" ("Project Notes" ++ pnts) ]
    where
       pn = bsToString (projectName p)
-      pnts = fromMaybe "None" (fmap bsToString $ projectNotes p)
+      pnts = maybe "None" bsToString (projectNotes p)
