@@ -16,8 +16,6 @@ module Tasks.Cli.Menus
 import Control.Monad
 import Data.Char (toLower)
 import Data.Maybe
-import System.IO (hSetEcho, stdin)
-import System.Console.Readline (readline)
 
 import Tasks.Types
 import Tasks.Task
@@ -70,15 +68,6 @@ numbered xs
       l = length xs
       nchc n x = let sn = show n in
          Choice sn  (sn ++ ". " ++ shortRep x)
-
--- | Present a prompt to the user and get a string back from them.
-promptAndRead :: String -> IO String
-promptAndRead prompt =
-      hSetEcho stdin True >> keepReading >>= 
-         (\ln -> hSetEcho stdin False >> return ln)
-   where
-      keepReading = readline prompt >>=
-         maybe keepReading return
 
 -- | Ask the user whether they're certain they'd like to delete the object
 -- described by the given string.
@@ -161,7 +150,7 @@ tskEditMenuHandler tsk modified c@(Choice chrs _, chr)
    where
       tmd = taskMetadata tsk
       prompt = tskEditPrompt chr
-      inpString = liftM bs $ promptAndRead prompt
+      inpString = liftM bs $ promptAndRead prompt True
       notesOrNothing bs = if bsEmpty bs then Nothing else Just bs
 
 

@@ -3,8 +3,10 @@ module Tasks.Cli.Menu
      Choice(..)
    , choiceKeys
    , choiceString
-   , padString
+   , getChar'
+   , promptAndRead
    , Menu(..)
+   , padString
    , menuDisplay
    , menuChoose
    , menuRun
@@ -17,7 +19,8 @@ module Tasks.Cli.Menu
    ) where
 
 import System.Console.ANSI (clearScreen)
-import Control.Monad (liftM)
+import System.Console.Readline (readline, addHistory)
+import Control.Monad (liftM, when)
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import System.IO (hSetEcho, stdin)
 
@@ -40,6 +43,18 @@ getChar' :: IO Char
 getChar' =
    hSetEcho stdin False >>
    getChar >>= (\c -> hSetEcho stdin True >> return c)
+
+-- | Present a prompt to the user and get a string back from them.
+-- The boolean option determines whether to add the users input
+-- to readline's history
+promptAndRead :: String -> Bool -> IO String
+promptAndRead prompt addh =
+      hSetEcho stdin True >> keepReading >>= 
+         (\ln -> hSetEcho stdin False >> return ln)
+   where
+      keepReading = readline prompt >>=
+         maybe keepReading (\l -> when addh (addHistory l) >> return l)
+
 
 data Menu r = Menu { menuTitle :: String
                    , menuChoices :: [Choice]
@@ -119,21 +134,19 @@ menusChoose menus = do
 menuRun :: Menu r -> IO r
 menuRun m@(Menu { menuChoices  = mchcs
                 , menuSubmenus = msbms
-                , menuSubmenuHandler = msmh }) = do
+                , menuSubmenuHandler = msmh }) =
    case null msbms of
-      True ->
-         (menuDisplay m >> menuChoose m >>= menuHandler m)
-      otherwise -> do
-         clearScreen
-         menuDisplay m
-         (mmenu,chc,chr) <- menusChoose menus
-         res <- menuHandler mmenu (chc, chr)
-         handleRes res chc
+      True -> menuDisplay m >> menuChoose m >>= menuHandler m
+      otherwise -> do clearScreen
+                      menuDisplay m
+                      (mmenu,chc,chr) <- menusChoose menus
+                      res <- menuHandler mmenu (chc, chr)
+                      handleRes res chc
    where
       menus = m:msbms
       handleRes r chc
          | chc `elem` mchcs = return r
-         | otherwise        = fromMaybe return msmh $ r
+         | otherwise        = fromMaybe return msmh r
 
 menuRunWhile :: (r -> Bool) -> Menu r -> IO r
 menuRunWhile f menu = do
@@ -177,7 +190,7 @@ menuMod f m@(Menu { menuHandler = mh
    where
       nmh mh tup = mh tup >>= f
 
--- | Givne a menu, create one which applies a different handler to
+-- | Given a menu, create one which applies a different handler to
 -- any submenus which happen to be chosen when the new menu is ran.
 menuSubMod :: (r -> IO r) -> Menu r -> Menu r
 menuSubMod f m = m { menuSubmenuHandler = Just f }
