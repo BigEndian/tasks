@@ -125,8 +125,8 @@ menusChoose menus = do
    if null matches then
       menusChoose menus
       else
-      let mtch = head matches in
-         return (menus !! fst mtch, fromJust (snd mtch), ik)
+      let (midx,mchc) = head matches in
+         return (menus !! midx, fromJust mchc, ik)
 
 
 -- | Display a menu, get a choice, then pass the resultant choice
