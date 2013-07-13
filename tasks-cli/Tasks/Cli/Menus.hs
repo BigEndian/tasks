@@ -168,6 +168,7 @@ tskEditMenu tsk mod = Menu { menuTitle = padString '=' 35 "Edit Task"
       wrap act@(Unmodified t) = menuRun $ tskEditMenu tsk mod
       wrap act = return act
 
+
 -- | Currently, runs the task edit menu, determines which task is modified,
 -- replaces the modified task in the task list, then runs a new task list menu
 -- with the modified set of tasks.
@@ -221,8 +222,35 @@ tsksListMenu tasks = tsksListMenu' asActs 0
       asActs = map Unmodified tasks
 
 prjChoices :: Project -> [Choice]
-prjChoices p = [ Choice "Nn" ("Project Name" ++ pn)
-               , Choice "Oo" ("Project Notes" ++ pnts) ]
+prjChoices p = [ Choice "Nn" ("Project (N)ame:  " ++ pn)
+               , Choice "Oo" ("Project N(o)tes: " ++ pnts)
+               , Choice "Ll" "(L)ist Tasks"
+               , Choice "Dd" "(D)elete Project"
+               , Choice "Qq" "(Q)uit editing" ]
    where
       pn = bsToString (projectName p)
       pnts = maybe "None" bsToString (projectNotes p)
+
+prjEditPrompt :: Char -> String
+prjEditPrompt c
+   | c `elem` "Nn" = "Enter new project name: "
+   | c `elem` "Oo" = "Enter new project notes: "
+   | otherwise = error "Invalid character given to edit prompt"
+
+prjEditHandler :: Project -> (Choice, Char) -> IO (Action Project)
+prjEditHandler p (Choice chrs _, chr) = case chrs of
+      "Nn" -> inpString >>= (\nname -> return p { projectName = nname }) >>=
+         return . Modified
+      otherwise -> return $ Unmodified p
+   where
+      inpString = liftM bs $ promptAndRead (prjEditPrompt chr) True
+
+prjEditMenu :: Project -> Menu (Action Project)
+prjEditMenu p =
+   Menu { menuTitle = padString '=' 35 "Edit Project"
+        , menuChoices = prjChoices p
+        , menuHandler = prjEditHandler p
+        , menuSubmenuHandler = Nothing
+        , menuSubmenus = [] }
+   where
+      pn = bsToString (projectName p)
