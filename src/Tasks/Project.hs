@@ -26,7 +26,9 @@ module Tasks.Project
    , projectEditDue
 
    -- Debugging
-   , exProject
+   , exProject1
+   , exProject2
+   , exProjects
    ) where
 
 
@@ -126,8 +128,16 @@ project pnm mpnts mp md tsks =
            , projectTasks = tsks
            , projectMetadata = metadata mpnts mp (Just False) md }
 
-exProject = project "Example Project"
+exProject1 = project "Example Project 1"
                     (Just "A sample project")
                     (Just Medium)
                     Nothing
                     exTasks
+
+exProject2 = project "Example Project 2"
+                     (Just "Another sample project")
+                     (Just Low)
+                     Nothing
+                     []
+
+exProjects = [exProject1, exProject2]
